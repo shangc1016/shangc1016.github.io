@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-Hans">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
@@ -26,7 +26,7 @@
 <meta property="og:url" content="https://shangc1016/shangc1016.github.io/2022/04/26/xv6-trap/index.html">
 <meta property="og:site_name" content="shangc&#39;s blog">
 <meta property="og:description" content="xv6的trap机制syscall相关的riscv寄存器： stvec：ecall 指令跳转到这儿执行，这个寄存器存放的是trampoline的地址；trampline汇编代码是用户空间进如内核空间的代码 sepc：ecall指令把用户空间的pc指针保存在此 scause：ecall将其设置为8，表示一个系统调用 sscratch： trapframe的地址 sapt（S-mode address">
-<meta property="og:locale">
+<meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220502162140783.png">
 <meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220502161616200.png">
 <meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220502163333366.png">
@@ -48,7 +48,7 @@
     sidebar: "",
     isHome : false,
     isPost : true,
-    lang   : 'zh-Hans'
+    lang   : 'zh-CN'
   };
 </script>
 
@@ -92,7 +92,7 @@
     <header class="header" itemscope itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-container">
   <div class="site-nav-toggle">
-    <div class="toggle" aria-label="Toggle navigation bar">
+    <div class="toggle" aria-label="切换导航栏">
       <span class="toggle-line toggle-line-first"></span>
       <span class="toggle-line toggle-line-middle"></span>
       <span class="toggle-line toggle-line-last"></span>
@@ -121,12 +121,12 @@
   <ul id="menu" class="main-menu menu">
         <li class="menu-item menu-item-home">
 
-    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
 
   </li>
         <li class="menu-item menu-item-archives">
 
-    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
 
   </li>
   </ul>
@@ -156,7 +156,7 @@
     
   
   
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://shangc1016/shangc1016.github.io/2022/04/26/xv6-trap/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -178,16 +178,16 @@
               <span class="post-meta-item-icon">
                 <i class="far fa-calendar"></i>
               </span>
-              <span class="post-meta-item-text">Posted on</span>
+              <span class="post-meta-item-text">发表于</span>
 
-              <time title="Created: 2022-04-26 21:53:04" itemprop="dateCreated datePublished" datetime="2022-04-26T21:53:04+08:00">2022-04-26</time>
+              <time title="创建时间：2022-04-26 21:53:04" itemprop="dateCreated datePublished" datetime="2022-04-26T21:53:04+08:00">2022-04-26</time>
             </span>
               <span class="post-meta-item">
                 <span class="post-meta-item-icon">
                   <i class="far fa-calendar-check"></i>
                 </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2022-05-02 17:27:44" itemprop="dateModified" datetime="2022-05-02T17:27:44+08:00">2022-05-02</time>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-05-02 17:27:44" itemprop="dateModified" datetime="2022-05-02T17:27:44+08:00">2022-05-02</time>
               </span>
 
           
@@ -341,10 +341,10 @@
 
       <ul class="sidebar-nav motion-element">
         <li class="sidebar-nav-toc">
-          Table of Contents
+          文章目录
         </li>
         <li class="sidebar-nav-overview">
-          Overview
+          站点概览
         </li>
       </ul>
 
@@ -365,12 +365,12 @@
           <a href="/archives/">
         
           <span class="site-state-item-count">5</span>
-          <span class="site-state-item-name">posts</span>
+          <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-tags">
         <span class="site-state-item-count">3</span>
-        <span class="site-state-item-name">tags</span>
+        <span class="site-state-item-name">标签</span>
       </div>
   </nav>
 </div>
@@ -402,7 +402,7 @@
   </span>
   <span class="author" itemprop="copyrightHolder">Shang</span>
 </div>
-  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
   </div>
 
         
