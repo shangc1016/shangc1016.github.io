@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>xv6-address-space | shangc&#39;s blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="第三章、页表分页机制xv6运行在Sv39的RISC的机器上，39表示用到了机器64位的低39位，高25位没有用到。在这样的设置中，逻辑页表是一个2的27次方大小的页表项数组（39 - 12 &#x3D; 27）。每个页表项包括一个44位的物理页号，以及10位的校验位。实际使用用不了这么多的物理页，因为2的54次方太大的，因此物理页号的高位是0。RISC-V的实现是三级页表，一个虚拟地址经过页表项的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="xv6-address-space">
+<meta property="og:url" content="https://shangc1016/shangc1016.github.io/2022/05/02/xv6-address-space/index.html">
+<meta property="og:site_name" content="shangc&#39;s blog">
+<meta property="og:description" content="第三章、页表分页机制xv6运行在Sv39的RISC的机器上，39表示用到了机器64位的低39位，高25位没有用到。在这样的设置中，逻辑页表是一个2的27次方大小的页表项数组（39 - 12 &#x3D; 27）。每个页表项包括一个44位的物理页号，以及10位的校验位。实际使用用不了这么多的物理页，因为2的54次方太大的，因此物理页号的高位是0。RISC-V的实现是三级页表，一个虚拟地址经过页表项的">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220427211356339.png">
+<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220427233535418.png">
+<meta property="og:image" content="https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Virtual_address_space_and_physical_address_space_relationship.svg/600px-Virtual_address_space_and_physical_address_space_relationship.svg.png">
+<meta property="og:image" content="https://www.researchgate.net/profile/Nada-Abdullah/publication/329809459/figure/fig1/AS:705894601986049@1545309796418/Data-structures-used-by-the-buddy-system-4.ppm">
+<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220504002217857.png">
+<meta property="article:published_time" content="2022-05-02T09:28:13.000Z">
+<meta property="article:modified_time" content="2022-05-04T04:07:54.795Z">
+<meta property="article:author" content="Shang">
+<meta property="article:tag" content="os">
+<meta property="article:tag" content="xv6">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220427211356339.png">
+  
+    <link rel="alternate" href="/atom.xml" title="shangc's blog" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.png">
+  
+  
+    
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/typeface-source-code-pro@0.0.71/index.min.css">
+
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+    
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.min.css">
+
+  
+<meta name="generator" content="Hexo 6.1.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">shangc&#39;s blog</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS 订阅"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="搜索"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://shangc1016/shangc1016.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-xv6-address-space" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2022/05/02/xv6-address-space/" class="article-date">
+  <time class="dt-published" datetime="2022-05-02T09:28:13.000Z" itemprop="datePublished">2022-05-02</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      xv6-address-space
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h1 id="第三章、页表"><a href="#第三章、页表" class="headerlink" title="第三章、页表"></a>第三章、页表</h1><h4 id="分页机制"><a href="#分页机制" class="headerlink" title="分页机制"></a>分页机制</h4><p>xv6运行在Sv39的RISC的机器上，39表示用到了机器64位的低39位，高25位没有用到。在这样的设置中，逻辑页表是一个2的27次方大小的页表项数组（39 - 12 &#x3D; 27）。每个页表项包括一个44位的物理页号，以及10位的校验位。实际使用用不了这么多的物理页，因为2的54次方太大的，因此物理页号的高位是0。RISC-V的实现是三级页表，一个虚拟地址经过页表项的三次翻译变成物理地址。页表保存在内存中，构成一个三层的树。树根是4k大小的一页，包括512（4k &#x2F; 512 &#x3D; 8byte &gt; 54bit）个页表项PTE。页表就是对每个进程地址空间的描述。</p>
+<p><img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220427211356339.png" alt="image-20220427211356339"></p>
+<p>为了打开页表机制，需要把根页表的地址写入satp寄存器。每个CPU有一个单独的satp寄存器。因此每个CPU可以根据不同的页表进行地址转化。在进入内核态时，satp寄存器指向内核的根页表地址。在用户进程中，寄存器指向用户进程的根页表地址。在系统最初初始化的时候，在<code>kernel/start.c</code>中就写apt寄存器为0，即禁用分页机制。</p>
+<h4 id="Direct-Mapping"><a href="#Direct-Mapping" class="headerlink" title="Direct Mapping"></a>Direct Mapping</h4><p>内核为了能够处理一些硬件资源等，会把一部分的物理地址直接映射到同一个虚拟地址，这个叫做“direct mapping”。例如，在物理地址以及虚拟地址，内核的起始地址都位于0x80000000。直接内存映射简化了内核读写物理内存。例如，fork创建子进程，内存分配器返回物理内存，然后内核把这个地址直接当成虚拟地址进行处理，省略了一步地址转化。</p>
+<p>同时，还有一部分内存不是直接映射的：</p>
+<ul>
+<li>trampoline的内存页：这个内存页被映射到了虚拟内存的地址最高端（trampoline在内核中被映射了两次，一次到地址最高端，一次是直接映射）</li>
+<li>内核栈页面：每个进程都有一个内核栈，这个内核栈映射到地址高端，防止可能的地址越界造成对其他正在使用页面的污染。（把这个很重要的数据保护起来，放在平常访问不到的地址高端）</li>
+</ul>
+<p>使用直接映射的内核栈地址也可以，就是这样做不好处理可能的内存越界，因为和其他的数据挨得比较近。如果有地址越界，造成其他页面的数据被覆盖，单纯的内核异常不能处理这个问题。</p>
+<p>每个CPU有一个寄存器SATP寄存器，这个寄存器存放的是当前进程的第一级页表的地址，这个地址，以及页表项PTE里面的地址（索引下一级的页表），这个地址都是物理地址。因为页表的目的就是虚拟地址与物理地址的转换，这儿还是虚拟地址的话，就陷入了无尽的循环。</p>
+<p>因为三级页表的存在，翻译一个虚拟地址需要读内存三次才能转为物理地址。这个太慢了，于是有了TLB的存在，这个是一个硬件CPU层面东西，我们只需要知道他的存在就行。在RISCV中，指令sfence_vma 清空TLB缓存。不同的进程有自己不同的页表，在进程切换时，TLB也需要清空。</p>
+<p>xv6中的walk函数实现了MMU硬件相同的功能</p>
+<p>既然有MMU的硬件，那为啥需要一个walk函数，实现相同的逻辑？</p>
+<p><img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220427233535418.png" alt="image-20220427233535418"></p>
+<blockquote>
+<p>解释一下，这个就是说，通常情况下，每个进程只需要用到自己的内存空间，使用自己的pagetable。这样的话，pagetable由MMU实现，不需要walk函数是完全可以的。但是针对copyin、copyout这种情况，内核进程需要直接对用户进程的内存空间进行数据的读写。就是需要访问其他的进程，这个需要显式的调用。也就是为啥会有walk函数的存在。不知道说的对不对？</p>
+</blockquote>
+<h4 id="用户进程空间布局"><a href="#用户进程空间布局" class="headerlink" title="用户进程空间布局"></a>用户进程空间布局</h4><p><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Virtual_address_space_and_physical_address_space_relationship.svg/600px-Virtual_address_space_and_physical_address_space_relationship.svg.png" alt="img"></p>
+<p>其中，program break就指的是内存布局中data段的末尾。brk、sbrk的语义就是把program break后移，空出新的内存空间，返回给用户。这个就是heap堆区的增长方式。</p>
+<h4 id="sbrk分配器"><a href="#sbrk分配器" class="headerlink" title="sbrk分配器"></a>sbrk分配器</h4><blockquote>
+<p>xv6中的这个slab和linux中的slab不一样，linux中的slab是针对字节大小的小内存分配的设计。</p>
+</blockquote>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> PGROUNDUP(sz)  (((sz)+PGSIZE-1) &amp; ~(PGSIZE-1))</span></span><br><span class="line"><span class="comment">// PGROUNDUP 他的作用是给出sz对应的页面上取整</span></span><br><span class="line"><span class="comment">// PGROUNDUP(4095) = 4096,PGROUNDUP(4096) = 4096,PGROUNDUP(4097) = 8192</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PGROUNDDOWN(a) (((a)) &amp; ~(PGSIZE-1))</span></span><br><span class="line"><span class="comment">// PGROUNDDOWN 他的作用是给出sz对应的页面下取整</span></span><br><span class="line"><span class="comment">// PGROUNDDOWN(4095) = 0,PGROUNDUP(4096) = 4096,PGROUNDUP(4097) = 4096</span></span><br></pre></td></tr></table></figure>
+
+<p>用户进程的malloc函数会调用sbrk这个系统调用<code>user/umalloc.c</code>,然后调用<code>kernel/proc.c</code>中的<code>growproc</code>,即扩张program brea;接着调用uvmalloc,可以看到这种分配方式是以页面为单位的，计算了oldsz、newsz之间差几个页面，然后kalloc分配对应的物理页面，并且映射到相应的program break位置上去。最后更新p-&gt;sz &#x3D; newsz;</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// kernel/proc.c</span></span><br><span class="line">uint64 <span class="title function_">uvmalloc</span><span class="params">(<span class="type">pagetable_t</span> pagetable, uint64 oldsz, uint64 newsz)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">char</span> *mem;</span><br><span class="line">  uint64 a;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>(newsz &lt; oldsz)</span><br><span class="line">    <span class="keyword">return</span> oldsz;</span><br><span class="line"></span><br><span class="line">  oldsz = PGROUNDUP(oldsz);</span><br><span class="line">  a = oldsz;</span><br><span class="line">  <span class="keyword">for</span>(; a &lt; newsz; a += PGSIZE)&#123;</span><br><span class="line">    mem = kalloc();</span><br><span class="line">    <span class="keyword">if</span>(mem == <span class="number">0</span>)&#123;</span><br><span class="line">      uvmdealloc(pagetable, a, oldsz);</span><br><span class="line">      <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">memset</span>(mem, <span class="number">0</span>, PGSIZE);</span><br><span class="line">    <span class="keyword">if</span>(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != <span class="number">0</span>)&#123;</span><br><span class="line">      kfree(mem);</span><br><span class="line">      uvmdealloc(pagetable, a, oldsz);</span><br><span class="line">      <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> newsz;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="buddy分配器"><a href="#buddy分配器" class="headerlink" title="buddy分配器"></a>buddy分配器</h4><blockquote>
+<p>参考ULK,312页伙伴系统</p>
+<p>参考MOSPI,62页buddy system, slab</p>
+</blockquote>
+<p><img src="https://www.researchgate.net/profile/Nada-Abdullah/publication/329809459/figure/fig1/AS:705894601986049@1545309796418/Data-structures-used-by-the-buddy-system-4.ppm" alt="Data structures used by the buddy system [4] | Download Scientific Diagram"></p>
+<p>buddy分配器把所有空闲页分为多个链表，每个块链表包含大小为1，2，4，8…的<strong>物理连续页框</strong>。</p>
+<p>步骤：</p>
+<ol>
+<li>需要大小为n个页面的内存，先对n上取整到2^k;</li>
+<li>在buddy的链表上对应的2^k上找，找到返回，并更新bitmap</li>
+<li>没找到，在更大的块链表上找，找到一半返回给用户，一半加入上一级链表；以此类推。</li>
+<li>维护bitmap，合并buddy。</li>
+</ol>
+<p>怎么确定buddy中的伙伴？</p>
+<ul>
+<li>buddy数组中的每一项指向一个链表，分表表示大小为1，2，4，8…个连续物理页面的地址</li>
+<li>以第一个链表，即大小为一个页面的为例。假设第一个物理页面地址0x0000,则第二个物理页面地址0x1000,两者互为伙伴。地址只差一位，而且在第12位，而且这个链表大小4K(2^12)。</li>
+</ul>
+<h4 id="malloc与free的实现"><a href="#malloc与free的实现" class="headerlink" title="malloc与free的实现"></a>malloc与free的实现</h4><blockquote>
+<p>TODO</p>
+<p>参考TLPI，page117</p>
+</blockquote>
+<h1 id="Lab-Allocator-for-xv6"><a href="#Lab-Allocator-for-xv6" class="headerlink" title="Lab: Allocator for xv6"></a>Lab: Allocator for xv6</h1><h4 id="任务"><a href="#任务" class="headerlink" title="任务"></a>任务</h4><ul>
+<li>修改<code>kernel/file.c</code>，使用buddy分配器，使得打开文件数不受NFILE限制</li>
+<li>buddy分配器空间利用不高效。对于buddy系统关系的每种大小的每个内存块，需要用一位来记录是否在使用。一个优化是对于buddy中的一对内存块，只是用一位表示，即B1_is_free异或B2_is_free。对于一对buddy内存B1、B2,每当有一个块被释放或者分配，就翻转这个数。例如：如果B1、B2都分配了则置为为0，如果B1被释放，翻转为1。如果这一位是1并且B2被释放，我们就需要合并B1B2。这样buddy管理的每个块节省了1&#x2F;2个bit。当buddy管理128M内存的时候，大概可以节省1MB内存。</li>
+</ul>
+<blockquote>
+<p>整个lab只需修改<code>kernel/buddy.c</code>和<code>kernel/file.c</code></p>
+</blockquote>
+<h4 id="Hints"><a href="#Hints" class="headerlink" title="Hints"></a>Hints</h4><ul>
+<li>移除<code>kernel/file.c</code>的第19行。在<code>filealloc</code>中使用<code>bd_malloc</code>分配<code>struct file</code>结构体。然后在<code>fileclose</code>中释放分配的内存</li>
+<li><code>fileclos</code>需要获得ftable.lock，因为这个锁保护<code>f-ref</code></li>
+<li><code>bc_alloc</code>并不会清空分配得到的内存，需要在使用前由调用者手动清空</li>
+<li>使用<code>bd_print</code>打印分配器的状态</li>
+<li>与讲义相比，我们修改了<code>bd_init</code>。因此，这个函数调用的内存是他可用的物理内存范围，与讲义相比，我们已经修改了bd_init，因此可以将其调用，可用于分配的物理内存范围。 BD_Init从该内存分配了Buddy数据结构的内存。它相应地初始化了数据结构：BD_INIT标记了用于分配的好友数据结构的内存，以免重新分配。此外，我们已经修改了BD_INIT，以处理一定数量的内存，这些内存不是通过将不可用的内存标记为分配的2的功率。最后，我们修改了伙伴分配器，以使用锁来序列化并发调用。</li>
+</ul>
+<h4 id="选做"><a href="#选做" class="headerlink" title="选做"></a>选做</h4><ul>
+<li>把其他的数据结构改为动态申请内存的方式，proc数据结构需要大幅修改，别的还可。</li>
+</ul>
+<blockquote>
+<p>TODO: 先把buddy.c看明白orz</p>
+</blockquote>
+<hr>
+<ul>
+<li>xv6中的buddy和linux中的还有不同，linux中的buddy是针对物理页面的一种内存管理器。在xv6中buddy管理的内存粒度似乎要更小？最小的内存块大小LEAF_SIZE &#x3D; 16字节？？在系统初始化之后所有的内存全部交给buddy管理，内存大小几乎等于128MB。所以buddy数组的大小也大得多，长度为24。</li>
+<li>互为buddy的块物理内存连续，在xv6的buddy中，采用序号的方式.互为buddy的两个块的序号为(n,n+1)其中n为偶数。</li>
+</ul>
+<hr>
+<h4 id="xv6-buddy源码"><a href="#xv6-buddy源码" class="headerlink" title="xv6-buddy源码"></a>xv6-buddy源码</h4><h6 id="bd-init"><a href="#bd-init" class="headerlink" title="bd_init"></a>bd_init</h6><p>首先调试一下main.c，其中用到了buddy 来初始化内核物理内存。过程中发现一个错误，riscv64-unknown-elf-gdb调试器无法打印出local variable，最后解决<a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/68501265/cannot-access-memory-when-debugging-xv6-user-program-using-gdb">参考</a>，在CFLAGS中加一个参数<code>-gdwarf-2</code>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sz_info</span> &#123;</span></span><br><span class="line">  Bd_list <span class="built_in">free</span>;</span><br><span class="line">  <span class="type">char</span> *alloc;</span><br><span class="line">  <span class="type">char</span> *split;</span><br><span class="line">&#125;;</span><br><span class="line"><span class="comment">// 这个是buddy的结构体，其中free是双向链表，链接下一个同样大小的空闲块</span></span><br><span class="line"><span class="comment">// alloc表示这种大小空闲块的分配情况</span></span><br><span class="line"><span class="comment">// split表示这种大小空闲块的分割情况</span></span><br></pre></td></tr></table></figure>
+
+<ol>
+<li><p>首先进入到bd_init;bd_init初始化了buddy的元数据部分，即地址0x8002000到0x88000000;然后调用bd_initfree初始化空闲内存。</p>
+</li>
+<li><p>分别初始化这个长度为24的数组的alloc以及split。他的长度表示这个大小的块的最大个数，每个块的状态用一位表示。</p>
+<blockquote>
+<p>因为块大小为16B的已经是最小的，必能继续分割了。所以其没有split数组。代码中从下表1开始</p>
+</blockquote>
+</li>
+<li><p>然后把buddy系统的元数据所占用的内存在buddy系统中标记为1，即在使用；同样的把end地址上取整的部分地址是不可用的，同样标记为1。</p>
+</li>
+<li><p>在kinit之后，打印出buddy的状态</p>
+<ol>
+<li><p>根据代码注释，这儿的alloc作为bitmap记录那些亏被分配出去了，split记录那些块被分割了；但是为啥打印处理的alloc和split一样呢？TODO</p>
+</li>
+<li><p>根据这个输出布局可以看到，alloc已经分配出去的内存分为两部分，一部分是前面的buddy的元数据，后面的一块内存是上取整留出来的无法使用的内存。然后观察对于每种块大小的freelsit、组合起来刚好完全覆盖了空闲内存区域</p>
+<blockquote>
+<p>以大小为16B的做个解释：每块大小16B,最多有8388604个块，共计128MB内存。freelist只有一个，说明只有管理内存的左侧或者右侧有一个空间，其余空闲都在严格内部。196657*16&gt;&#x3D;3146512,即表示0到196657这些块被buddy的元数据占用；8388608-8377856&#x3D;0x2a00，表示从8388608到8377856的物理page属于不可用的页面。</p>
+<ul>
+<li>有的没有freelist，说明管理的可用内存刚好margin&#x3D;块大小，buddy彼此被完整分割</li>
+<li>有的freelist不止一个，说明管理的可用内存左右边界刚好各自用了一个块，剩下一个buddy成为free空闲状态。</li>
+</ul>
+</blockquote>
+</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line">xv6 kernel is booting</span><br><span class="line"></span><br><span class="line">bd: memory sz is 134045696 bytes; allocate an size array of length 24</span><br><span class="line">bd: 3146512 meta bytes for managing 134217728 bytes of memory</span><br><span class="line">bd: 0x2a000 bytes unavailable</span><br><span class="line">size 0 (blksz 16 nblk 8388608): free list:  0x000000008032a310</span><br><span class="line">  alloc: [0, 196657) [8377856, 8388608)</span><br><span class="line">size 1 (blksz 32 nblk 4194304): free list:  0x000000008032a320</span><br><span class="line">  alloc: [0, 98329) [4188928, 4194304)</span><br><span class="line">  split: [0, 98329) [4188928, 4194304)</span><br><span class="line">size 2 (blksz 64 nblk 2097152): free list:  0x000000008032a340</span><br><span class="line">  alloc: [0, 49165) [2094464, 2097152)</span><br><span class="line">  split: [0, 49165) [2094464, 2097152)</span><br><span class="line">size 3 (blksz 128 nblk 1048576): free list:  0x000000008032a380</span><br><span class="line">  alloc: [0, 24583) [1047232, 1048576)</span><br><span class="line">  split: [0, 24583) [1047232, 1048576)</span><br><span class="line">size 4 (blksz 256 nblk 524288): free list: </span><br><span class="line">  alloc: [0, 12292) [523616, 524288)</span><br><span class="line">  split: [0, 12292) [523616, 524288)</span><br><span class="line">size 5 (blksz 512 nblk 262144): free list: </span><br><span class="line">  alloc: [0, 6146) [261808, 262144)</span><br><span class="line">  split: [0, 6146) [261808, 262144)</span><br><span class="line">size 6 (blksz 1024 nblk 131072): free list:  0x000000008032a400</span><br><span class="line">  alloc: [0, 3073) [130904, 131072)</span><br><span class="line">  split: [0, 3073) [130904, 131072)</span><br><span class="line">size 7 (blksz 2048 nblk 65536): free list:  0x000000008032a800</span><br><span class="line">  alloc: [0, 1537) [65452, 65536)</span><br><span class="line">  split: [0, 1537) [65452, 65536)</span><br><span class="line">size 8 (blksz 4096 nblk 32768): free list:  0x000000008032b000</span><br><span class="line">  alloc: [0, 769) [32726, 32768)</span><br><span class="line">  split: [0, 769) [32726, 32768)</span><br><span class="line">size 9 (blksz 8192 nblk 16384): free list:  0x0000000087ffe000 0x000000008032c000</span><br><span class="line">  alloc: [0, 385) [16363, 16384)</span><br><span class="line">  split: [0, 385) [16363, 16384)</span><br><span class="line">size 10 (blksz 16384 nblk 8192): free list:  0x0000000087ffa000 0x000000008032e000</span><br><span class="line">  alloc: [0, 193) [8181, 8192)</span><br><span class="line">  split: [0, 193) [8181, 8192)</span><br><span class="line">size 11 (blksz 32768 nblk 4096): free list:  0x0000000080332000</span><br><span class="line">  alloc: [0, 97) [4090, 4096)</span><br><span class="line">  split: [0, 97) [4090, 4096)</span><br><span class="line">size 12 (blksz 65536 nblk 2048): free list:  0x0000000087fea000 0x000000008033a000</span><br><span class="line">  alloc: [0, 49) [2045, 2048)</span><br><span class="line">  split: [0, 49) [2045, 2048)</span><br><span class="line">size 13 (blksz 131072 nblk 1024): free list:  0x000000008034a000</span><br><span class="line">  alloc: [0, 25) [1022, 1024)</span><br><span class="line">  split: [0, 25) [1022, 1024)</span><br><span class="line">size 14 (blksz 262144 nblk 512): free list:  0x0000000087faa000 0x000000008036a000</span><br><span class="line">  alloc: [0, 13) [511, 512)</span><br><span class="line">  split: [0, 13) [511, 512)</span><br><span class="line">size 15 (blksz 524288 nblk 256): free list:  0x0000000087f2a000 0x00000000803aa000</span><br><span class="line">  alloc: [0, 7) [255, 256)</span><br><span class="line">  split: [0, 7) [255, 256)</span><br><span class="line">size 16 (blksz 1048576 nblk 128): free list:  0x0000000087e2a000</span><br><span class="line">  alloc: [0, 4) [127, 128)</span><br><span class="line">  split: [0, 4) [127, 128)</span><br><span class="line">size 17 (blksz 2097152 nblk 64): free list:  0x0000000087c2a000</span><br><span class="line">  alloc: [0, 2) [63, 64)</span><br><span class="line">  split: [0, 2) [63, 64)</span><br><span class="line">size 18 (blksz 4194304 nblk 32): free list:  0x000000008782a000 0x000000008042a000</span><br><span class="line">  alloc: [0, 1) [31, 32)</span><br><span class="line">  split: [0, 1) [31, 32)</span><br><span class="line">size 19 (blksz 8388608 nblk 16): free list:  0x000000008702a000 0x000000008082a000</span><br><span class="line">  alloc: [0, 1) [15, 16)</span><br><span class="line">  split: [0, 1) [15, 16)</span><br><span class="line">size 20 (blksz 16777216 nblk 8): free list:  0x000000008602a000 0x000000008102a000</span><br><span class="line">  alloc: [0, 1) [7, 8)</span><br><span class="line">  split: [0, 1) [7, 8)</span><br><span class="line">size 21 (blksz 33554432 nblk 4): free list:  0x000000008402a000 0x000000008202a000</span><br><span class="line">  alloc: [0, 1) [3, 4)</span><br><span class="line">  split: [0, 1) [3, 4)</span><br><span class="line">size 22 (blksz 67108864 nblk 2): free list: </span><br><span class="line">  alloc: [0, 2)</span><br><span class="line">  split: [0, 2)</span><br><span class="line">size 23 (blksz 134217728 nblk 1): free list: </span><br><span class="line">  alloc: [0, 1)</span><br><span class="line">  split: [0, 1)</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>内存布局</p>
+<p><img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220504002217857.png" alt="image-20220504002217857"></p>
+</li>
+<li><p>空闲内存初始化；通过这种方式，其实就已经把所有的空闲内存区域管理起来了；块初始化示意图</p>
+<blockquote>
+<p>这块还不是很懂，画的图可能有bug</p>
+</blockquote>
+<p>![Untitled Diagram.drawio](<a target="_blank" rel="noopener" href="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgUntitled">https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgUntitled</a> Diagram.drawio.png)</p>
+</li>
+</ol>
+<h6 id="bd-malloc"><a href="#bd-malloc" class="headerlink" title="bd_malloc"></a>bd_malloc</h6><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 从buddy中分配内存</span></span><br><span class="line"><span class="type">void</span> *<span class="title function_">bd_malloc</span><span class="params">(uint64 nbytes)</span>&#123;</span><br><span class="line">  <span class="type">int</span> fk, k;</span><br><span class="line"></span><br><span class="line">  acquire(&amp;lock);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Find a free block &gt;= nbytes, starting with smallest k possible</span></span><br><span class="line">  fk = firstk(nbytes);</span><br><span class="line">  <span class="comment">// 首先对nbytes上取整为fk;</span></span><br><span class="line">  <span class="comment">// 比如申请大小为50B，则首先上取整为64，则fk=2 (16*2^2 &gt;= 64)</span></span><br><span class="line">  <span class="comment">// 如果申请大小500B,上取整为512,fk=5 (16*2^5 &gt;= 512)</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// 然后从下标为2的数组项开始找(每块大小64B),如果当前链表为空，找块大小更大的(k+1)</span></span><br><span class="line">  <span class="keyword">for</span> (k = fk; k &lt; nsizes; k++) &#123;</span><br><span class="line">    <span class="keyword">if</span>(!lst_empty(&amp;bd_sizes[k].<span class="built_in">free</span>))</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span>(k &gt;= nsizes) &#123; <span class="comment">// No free blocks?</span></span><br><span class="line">    release(&amp;lock);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Found a block; pop it and potentially split it.</span></span><br><span class="line">  <span class="comment">// 找到之后， 把这个块标记为已经使用，</span></span><br><span class="line">  <span class="type">char</span> *p = lst_pop(&amp;bd_sizes[k].<span class="built_in">free</span>);</span><br><span class="line">  bit_set(bd_sizes[k].alloc, blk_index(k, p));</span><br><span class="line">  <span class="comment">// 把未分配的伙伴放到下一级链表中</span></span><br><span class="line">  <span class="comment">// 这块还没看明白TODO</span></span><br><span class="line">  <span class="keyword">for</span>(; k &gt; fk; k--) &#123;</span><br><span class="line">    <span class="comment">// split a block at size k and mark one half allocated at size k-1</span></span><br><span class="line">    <span class="comment">// and put the buddy on the free list at size k-1</span></span><br><span class="line">    <span class="type">char</span> *q = p + BLK_SIZE(k<span class="number">-1</span>);   <span class="comment">// p&#x27;s buddy</span></span><br><span class="line">    bit_set(bd_sizes[k].split, blk_index(k, p));</span><br><span class="line">    bit_set(bd_sizes[k<span class="number">-1</span>].alloc, blk_index(k<span class="number">-1</span>, p));</span><br><span class="line">    lst_push(&amp;bd_sizes[k<span class="number">-1</span>].<span class="built_in">free</span>, q);</span><br><span class="line">  &#125;</span><br><span class="line">  release(&amp;lock);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> p;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h6 id="bd-free"><a href="#bd-free" class="headerlink" title="bd_free"></a>bd_free</h6><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Free memory pointed to by p, which was earlier allocated using</span></span><br><span class="line"><span class="comment">// bd_malloc.</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">bd_free</span><span class="params">(<span class="type">void</span> *p)</span> &#123;</span><br><span class="line">  <span class="type">void</span> *q;</span><br><span class="line">  <span class="type">int</span> k;</span><br><span class="line"></span><br><span class="line">  acquire(&amp;lock);</span><br><span class="line">  <span class="keyword">for</span> (k = size(p); k &lt; MAXSIZE; k++) &#123;</span><br><span class="line">    <span class="type">int</span> bi = blk_index(k, p);</span><br><span class="line">    <span class="type">int</span> buddy = (bi % <span class="number">2</span> == <span class="number">0</span>) ? bi+<span class="number">1</span> : bi<span class="number">-1</span>;</span><br><span class="line">    bit_clear(bd_sizes[k].alloc, bi);  <span class="comment">// free p at size k</span></span><br><span class="line">    <span class="comment">// 如果这块内存的伙伴已经被分配出去了，就直接把这块内存插入到当前的链表中</span></span><br><span class="line">    <span class="comment">// 伙伴被分配出去，说明已经不能和伙伴合并，然后变成更大的一块连续内存了</span></span><br><span class="line">    <span class="keyword">if</span> (bit_isset(bd_sizes[k].alloc, buddy)) &#123;  <span class="comment">// is buddy allocated?</span></span><br><span class="line">      <span class="keyword">break</span>;   <span class="comment">// break out of loop</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// budy is free; merge with buddy</span></span><br><span class="line">    q = addr(k, buddy);</span><br><span class="line">    lst_remove(q);    <span class="comment">// remove buddy from free list</span></span><br><span class="line">    <span class="keyword">if</span>(buddy % <span class="number">2</span> == <span class="number">0</span>) &#123;</span><br><span class="line">      p = q;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// at size k+1, mark that the merged buddy pair isn&#x27;t split</span></span><br><span class="line">    <span class="comment">// anymore</span></span><br><span class="line">    <span class="comment">// 如果伙伴仍然空闲，合并到下一个块大小的链表，也没看明白TODO</span></span><br><span class="line">    bit_clear(bd_sizes[k+<span class="number">1</span>].split, blk_index(k+<span class="number">1</span>, p));</span><br><span class="line">  &#125;</span><br><span class="line">  lst_push(&amp;bd_sizes[k].<span class="built_in">free</span>, p);</span><br><span class="line">  release(&amp;lock);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h6 id="lab怎么做"><a href="#lab怎么做" class="headerlink" title="lab怎么做"></a>lab怎么做</h6><blockquote>
+<p>orz</p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://shangc1016/shangc1016.github.io/2022/05/02/xv6-address-space/" data-id="cl2r4y3yo0003amjh3k5m4hib" data-title="xv6-address-space" class="article-share-link">分享</a>
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/os/" rel="tag">os</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/xv6/" rel="tag">xv6</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2022/04/26/xv6-trap/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">后一篇</strong>
+      <div class="article-nav-title">xv6-trap</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/os/" rel="tag">os</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/riscv/" rel="tag">riscv</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/xv6/" rel="tag">xv6</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/os/" style="font-size: 20px;">os</a> <a href="/tags/riscv/" style="font-size: 10px;">riscv</a> <a href="/tags/xv6/" style="font-size: 20px;">xv6</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/05/">五月 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">四月 2022</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2022/05/02/xv6-address-space/">xv6-address-space</a>
+          </li>
+        
+          <li>
+            <a href="/2022/04/26/xv6-trap/">xv6-trap</a>
+          </li>
+        
+          <li>
+            <a href="/2022/04/23/xv6-lab-shell/">xv6-lab-shell</a>
+          </li>
+        
+          <li>
+            <a href="/2022/04/20/xv6-intro/">xv6-intro</a>
+          </li>
+        
+          <li>
+            <a href="/2022/04/06/xv6-x86-boot/">xv6-x86-boot</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2022 Shang<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+
+<script src="/js/jquery-3.4.1.min.js"></script>
+
+
+
+  
+<script src="/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+  </div>
+</body>
+</html>

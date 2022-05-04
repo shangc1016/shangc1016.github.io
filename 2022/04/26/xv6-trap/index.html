@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>xv6-trap | shangc&#39;s blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="xv6的trap机制syscall相关的riscv寄存器： stvec：ecall 指令跳转到这儿执行，这个寄存器存放的是trampoline的地址；trampline汇编代码是用户空间进如内核空间的代码 sepc：ecall指令把用户空间的pc指针保存在此 scause：ecall将其设置为8，表示一个系统调用 sscratch： trapframe的地址 sapt（S-mode address">
+<meta property="og:type" content="article">
+<meta property="og:title" content="xv6-trap">
+<meta property="og:url" content="https://shangc1016/shangc1016.github.io/2022/04/26/xv6-trap/index.html">
+<meta property="og:site_name" content="shangc&#39;s blog">
+<meta property="og:description" content="xv6的trap机制syscall相关的riscv寄存器： stvec：ecall 指令跳转到这儿执行，这个寄存器存放的是trampoline的地址；trampline汇编代码是用户空间进如内核空间的代码 sepc：ecall指令把用户空间的pc指针保存在此 scause：ecall将其设置为8，表示一个系统调用 sscratch： trapframe的地址 sapt（S-mode address">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220502162140783.png">
+<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220502161616200.png">
+<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220502163333366.png">
+<meta property="article:published_time" content="2022-04-26T13:53:04.000Z">
+<meta property="article:modified_time" content="2022-05-02T09:27:44.483Z">
+<meta property="article:author" content="Shang">
+<meta property="article:tag" content="os">
+<meta property="article:tag" content="xv6">
+<meta property="article:tag" content="riscv">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220502162140783.png">
+  
+    <link rel="alternate" href="/atom.xml" title="shangc's blog" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.png">
+  
+  
+    
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/typeface-source-code-pro@0.0.71/index.min.css">
+
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+    
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.min.css">
+
+  
+<meta name="generator" content="Hexo 6.1.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">shangc&#39;s blog</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS 订阅"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="搜索"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://shangc1016/shangc1016.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-xv6-trap" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2022/04/26/xv6-trap/" class="article-date">
+  <time class="dt-published" datetime="2022-04-26T13:53:04.000Z" itemprop="datePublished">2022-04-26</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      xv6-trap
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h3 id="xv6的trap机制"><a href="#xv6的trap机制" class="headerlink" title="xv6的trap机制"></a>xv6的trap机制</h3><h4 id="syscall相关的riscv寄存器："><a href="#syscall相关的riscv寄存器：" class="headerlink" title="syscall相关的riscv寄存器："></a>syscall相关的riscv寄存器：</h4><ul>
+<li>stvec：ecall 指令跳转到这儿执行，这个寄存器存放的是trampoline的地址；trampline汇编代码是用户空间进如内核空间的代码</li>
+<li>sepc：ecall指令把用户空间的pc指针保存在此</li>
+<li>scause：ecall将其设置为8，表示一个系统调用</li>
+<li>sscratch： trapframe的地址</li>
+<li>sapt（S-mode address translation and protection）：寄存器保存当前的页表基址</li>
+<li>a0-a7：系统调用的参数</li>
+<li>ra：返回地址</li>
+<li>a0：返回值</li>
+<li>a7：syscall的号码</li>
+<li>tp：当前cpu线程号</li>
+</ul>
+<h4 id="Sv39地址翻译"><a href="#Sv39地址翻译" class="headerlink" title="Sv39地址翻译"></a>Sv39地址翻译</h4><p>可以看到，虚拟地址用到了64位中的低39位，即最大的虚拟地址空间0x4000000000</p>
+<p><img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220502162140783.png" alt="image-20220502162140783"></p>
+<h4 id="以write为例，说明系统调用的过程："><a href="#以write为例，说明系统调用的过程：" class="headerlink" title="以write为例，说明系统调用的过程："></a>以write为例，说明系统调用的过程：</h4><ul>
+<li>write()<ul>
+<li>trampoline &#x2F; uservec<ul>
+<li>usertrap()<ul>
+<li>syscall()<ul>
+<li>sys_write()</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>usertrapret()</li>
+</ul>
+</li>
+<li>trampoline &#x2F; userret</li>
+</ul>
+</li>
+<li>write()返回</li>
+</ul>
+<p>以sh.c中的write系统调用为例子说明：</p>
+<ol>
+<li>首先查看sh.c的objdump代码sh.asm，查看到write函数直接调用的是<code>user/usys.S</code>的write函数，并且地址是<code>0000000000000d6a</code>，然后进入gdb调试。</li>
+<li>在执行ecall指令之前，查看各个寄存器的值，包括pc、sapt、sepc、stvec、scause、sscratch以及a0</li>
+<li>然后si单步执行ecall，进入到<code>kernel/trampoline.S</code>执行，<ol>
+<li>首先，把sscratch寄存器与a0寄存器的值交换，然后此时a0寄存器就是trapframe的地址，即要把当前进程的寄存器保存到a0寄存器所存的地址对应的页表中。</li>
+<li>最后跳转到进程结构体p-&gt;tf-&gt;kernel_trap处执行，（这个在<code>kernel/trap.c</code>中<code>usertrapret</code>中设置进程的内核trap处理函数为usertrap）</li>
+</ol>
+</li>
+<li>然后进入<code>kernel/trap.c</code>的<code>usertrap</code>执，因为已经进入内核，首先在函数中切换中断处理为kernelvec</li>
+<li>判断sscause寄存器的值是否为8，如果是8，就说明是来自用户空间的syscall。然后把寄存器epc的值保存到当前进程结构体中，并且epc+4，即反悔的时候直接执行ecall的下一条指令。</li>
+<li>最后调用syscall()，根据寄存器a7选择相应的系统调用处理函数，最后把返回值置给寄存器a0，最后返回。</li>
+<li>首先回到<code>usertrapret</code>函数中，设置进程关于内核的一些参数，如内核satp、kernel_sp进程的内核栈地址，进程trap的处理函数等，最后跳转到trampoline的userret处执行，重新从trapframe中把各个寄存器数据回复到物理的寄存器上，然后返回用户进程。</li>
+</ol>
+<h4 id="以initcode的系统调用为例："><a href="#以initcode的系统调用为例：" class="headerlink" title="以initcode的系统调用为例："></a>以initcode的系统调用为例：</h4><p><img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220502161616200.png" alt="image-20220502161616200"></p>
+<h4 id="执行ecall："><a href="#执行ecall：" class="headerlink" title="执行ecall："></a>执行ecall：</h4><p><img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220502163333366.png" alt="image-20220502163333366"></p>
+<h4 id="进入usertrap"><a href="#进入usertrap" class="headerlink" title="进入usertrap"></a>进入usertrap</h4><ul>
+<li>设置stvec寄存器为kernelvec，表示已经进入内核，相应的中断处理要由内核完成。</li>
+<li>判断scause寄存器的值，如果是8，表示syscall，先把epc+4，即返回的时候直接执行ecall的下一条指令</li>
+<li>执行syscall函数，根据a7寄存器执行sys_xxx，返回值放在a0寄存器</li>
+<li>进入usertrapret<ul>
+<li>关中断，写stvec寄存器为trampoline的userret。当当前不处理其他的中断，唯一处理的是进程从内核返回用户态，使用的代码是trampoline中的userret。</li>
+<li>设置好各种参数，包括设置epc为进程保存的epc、然后把sapt寄存器设置为当前进程的页表基址</li>
+<li>最后执行trampoline中的userret，回复进程现场，返回到用户态，继续执行ecall的下一条指令</li>
+</ul>
+</li>
+</ul>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
+<li>gdb调试：gdb调试有一个.gdbinit ，可以吧进入gdb之后的固定配置写到里面。执行命令gdb。首先执行这些命令。</li>
+<li>进程优先级：通过nice 调整，nice的取值-20-19，数字越大，优先级越低</li>
+<li>taskset：绑定进程到某个CPU执行</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://shangc1016/shangc1016.github.io/2022/04/26/xv6-trap/" data-id="cl2r4y3yr0005amjhcz93b85d" data-title="xv6-trap" class="article-share-link">分享</a>
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/os/" rel="tag">os</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/riscv/" rel="tag">riscv</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/xv6/" rel="tag">xv6</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2022/05/02/xv6-address-space/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">前一篇</strong>
+      <div class="article-nav-title">
+        
+          xv6-address-space
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2022/04/23/xv6-lab-shell/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">后一篇</strong>
+      <div class="article-nav-title">xv6-lab-shell</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/os/" rel="tag">os</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/riscv/" rel="tag">riscv</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/xv6/" rel="tag">xv6</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/os/" style="font-size: 20px;">os</a> <a href="/tags/riscv/" style="font-size: 10px;">riscv</a> <a href="/tags/xv6/" style="font-size: 20px;">xv6</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/05/">五月 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">四月 2022</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2022/05/02/xv6-address-space/">xv6-address-space</a>
+          </li>
+        
+          <li>
+            <a href="/2022/04/26/xv6-trap/">xv6-trap</a>
+          </li>
+        
+          <li>
+            <a href="/2022/04/23/xv6-lab-shell/">xv6-lab-shell</a>
+          </li>
+        
+          <li>
+            <a href="/2022/04/20/xv6-intro/">xv6-intro</a>
+          </li>
+        
+          <li>
+            <a href="/2022/04/06/xv6-x86-boot/">xv6-x86-boot</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2022 Shang<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+
+<script src="/js/jquery-3.4.1.min.js"></script>
+
+
+
+  
+<script src="/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+  </div>
+</body>
+</html>
