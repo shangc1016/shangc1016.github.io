@@ -1,113 +1,54 @@
-<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  
-  
-  <title>xv6-x86-boot | shangc&#39;s blog</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta name="description" content="[xv6 lab1] – Booting a PC计算机物理内存空间早期的8086等处理器的物理内存布局如图所示，是20位总线的机器，因此其最大寻址空间是1MB；物理内存低地址端的640KB位系统可用内存、640KB ~ 1MB位系统其他资源的占用内存，其中最重要的部分是从960KB ~ 1MB地址的BIOS部分；其他部分由RAM组成，BIOS部分由ROM制度存储实现，后来由可重复读写的flash">
-<meta property="og:type" content="article">
-<meta property="og:title" content="xv6-x86-boot">
-<meta property="og:url" content="https://shangc1016/shangc1016.github.io/2022/04/06/xv6-x86-boot/index.html">
-<meta property="og:site_name" content="shangc&#39;s blog">
-<meta property="og:description" content="[xv6 lab1] – Booting a PC计算机物理内存空间早期的8086等处理器的物理内存布局如图所示，是20位总线的机器，因此其最大寻址空间是1MB；物理内存低地址端的640KB位系统可用内存、640KB ~ 1MB位系统其他资源的占用内存，其中最重要的部分是从960KB ~ 1MB地址的BIOS部分；其他部分由RAM组成，BIOS部分由ROM制度存储实现，后来由可重复读写的flash">
-<meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211009203208456.png">
-<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211009204231494.png">
-<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211009205128689.png">
-<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211009205528695.png">
-<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211009205648899.png">
-<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211009210030129.png">
-<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211010140113617.png">
-<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211010143601304.png">
-<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgboot loader memory layout.svg">
-<meta property="article:published_time" content="2022-04-06T12:02:20.000Z">
-<meta property="article:modified_time" content="2022-05-04T03:53:44.709Z">
-<meta property="article:author" content="Shang">
-<meta property="article:tag" content="os">
-<meta property="article:tag" content="xv6">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211009203208456.png">
-  
-    <link rel="alternate" href="/atom.xml" title="shangc's blog" type="application/atom+xml">
-  
-  
-    <link rel="shortcut icon" href="/favicon.png">
-  
-  
+	
+	<title>xv6-x86-boot</title>
+	<meta name="keywords" content="shangc;blog" />
+
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
     
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/typeface-source-code-pro@0.0.71/index.min.css">
-
-  
-  
-<link rel="stylesheet" href="/css/style.css">
-
-  
+	   <link href="/css/main.css?v=3" rel="stylesheet" type="text/css" />
     
-<link rel="stylesheet" href="/fancybox/jquery.fancybox.min.css">
+        
+<script src="/js/util.js"></script>
 
-  
-<meta name="generator" content="Hexo 6.1.0"></head>
+        <script>
+            if(isMobile()) {
+                loadjscssfile('../css/mobile.css', 'css');
+            } else {
+                loadjscssfile('../css/desktop.css', 'css');
+            }
+        </script> 
+    
+
+    <link rel="alternate" type="application/atom+xml" href="/atom.xml" title="Atom feed">
+
+    
+	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=3"/>
+    
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
 
 <body>
-  <div id="container">
-    <div id="wrap">
-      <header id="header">
-  <div id="banner"></div>
-  <div id="header-outer" class="outer">
-    <div id="header-title" class="inner">
-      <h1 id="logo-wrap">
-        <a href="/" id="logo">shangc&#39;s blog</a>
-      </h1>
-      
-    </div>
-    <div id="header-inner" class="inner">
-      <nav id="main-nav">
-        <a id="main-nav-toggle" class="nav-icon"></a>
-        
-          <a class="main-nav-link" href="/">Home</a>
-        
-          <a class="main-nav-link" href="/archives">Archives</a>
-        
-      </nav>
-      <nav id="sub-nav">
-        
-          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS 订阅"></a>
-        
-        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
-      </nav>
-      <div id="search-form-wrap">
-        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="搜索"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://shangc1016/shangc1016.github.io"></form>
-      </div>
-    </div>
-  </div>
-</header>
 
-      <div class="outer">
-        <section id="main"><article id="post-xv6-x86-boot" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
-  <div class="article-meta">
-    <a href="/2022/04/06/xv6-x86-boot/" class="article-date">
-  <time class="dt-published" datetime="2022-04-06T12:02:20.000Z" itemprop="datePublished">2022-04-06</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 class="p-name article-title" itemprop="headline name">
-      xv6-x86-boot
-    </h1>
-  
 
-      </header>
-    
-    <div class="e-content article-entry" itemprop="articleBody">
-      
-        <h1 id="xv6-lab1-–-Booting-a-PC"><a href="#xv6-lab1-–-Booting-a-PC" class="headerlink" title="[xv6 lab1] – Booting a PC"></a>[xv6 lab1] – Booting a PC</h1><h3 id="计算机物理内存空间"><a href="#计算机物理内存空间" class="headerlink" title="计算机物理内存空间"></a>计算机物理内存空间</h3><p>早期的8086等处理器的物理内存布局如图所示，是20位总线的机器，因此其最大寻址空间是1MB；物理内存低地址端的640KB位系统可用内存、<code>640KB ~ 1MB</code>位系统其他资源的占用内存，其中最重要的部分是从<code>960KB ~ 1MB</code>地址的BIOS部分；其他部分由RAM组成，BIOS部分由ROM制度存储实现，后来由可重复读写的flash实现，满足BIOS升级等功能。</p>
+<h2 class="title">xv6-x86-boot</h2>
+<!--
+<div style="text-align:center;margin-top: -10px;">
+<div class="article-category">
+发表于2022年4月6日
+
+
+
+
+ </div>
+-->
+</div>
+
+<ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#xv6-lab1-–-Booting-a-PC"><span class="toc-text">[xv6 lab1] – Booting a PC</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#计算机物理内存空间"><span class="toc-text">计算机物理内存空间</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Step1：使用qemu"><span class="toc-text">Step1：使用qemu</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Step2：BIOS"><span class="toc-text">Step2：BIOS</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Step3：Boot-Loader"><span class="toc-text">Step3：Boot Loader</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Layout-of-Kernel-Program-Header"><span class="toc-text">Layout of Kernel Program Header</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Memory-Layout"><span class="toc-text">Memory Layout</span></a></li></ol></li></ol></li></ol>
+<h1 id="xv6-lab1-–-Booting-a-PC"><a href="#xv6-lab1-–-Booting-a-PC" class="headerlink" title="[xv6 lab1] – Booting a PC"></a>[xv6 lab1] – Booting a PC</h1><h3 id="计算机物理内存空间"><a href="#计算机物理内存空间" class="headerlink" title="计算机物理内存空间"></a>计算机物理内存空间</h3><p>早期的8086等处理器的物理内存布局如图所示，是20位总线的机器，因此其最大寻址空间是1MB；物理内存低地址端的640KB位系统可用内存、<code>640KB ~ 1MB</code>位系统其他资源的占用内存，其中最重要的部分是从<code>960KB ~ 1MB</code>地址的BIOS部分；其他部分由RAM组成，BIOS部分由ROM制度存储实现，后来由可重复读写的flash实现，满足BIOS升级等功能。</p>
 <img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211009203208456.png" alt="image-20211009203208456" style="zoom:67%;" />
 
 
@@ -158,7 +99,7 @@
 <p>内存布局中，栈指针只要给一个初值就行，此处设置的栈指针初值是start段的地址，就是说让栈指针指向start段的末尾，栈从该处开始增长；</p>
 </blockquote>
 <p>4、上一步跳转到了<code>bootmain</code> 函数中，其中主要的代码片段如下；</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> SECTSIZE	512</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> ELFHDR		((struct Elf *) 0x10000) <span class="comment">// scratch space</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">readsect</span><span class="params">(<span class="type">void</span>*, <span class="type">uint32_t</span>)</span>;</span><br><span class="line"><span class="type">void</span> <span class="title function_">readseg</span><span class="params">(<span class="type">uint32_t</span>, <span class="type">uint32_t</span>, <span class="type">uint32_t</span>)</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">bootmain</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Proghdr</span> *<span class="title">ph</span>, *<span class="title">eph</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// read 1st page off disk</span></span><br><span class="line">	readseg((<span class="type">uint32_t</span>) ELFHDR, SECTSIZE*<span class="number">8</span>, <span class="number">0</span>);</span><br><span class="line">	<span class="comment">// 此处调用readseg函数，从磁盘起始读取SECTSIXZE*8字节数据到内存ELFHDR处;大小刚好是4KB，即一个page;</span></span><br><span class="line">    <span class="comment">// 在readseg函数内部，实际从0+1扇区取数据，即从第二个扇区读4KB数据;因为bootloader占用了磁盘的0号扇区;</span></span><br><span class="line">    <span class="comment">// 读取到目的地址ELFHDR，即物理地址0x10000;读入4KB,则这块数据所占内存空间为0x10000 ~ 0x10fff;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// Q1: 为啥在此处读取4KB数据呢？</span></span><br><span class="line">    <span class="comment">// A: 4KB刚好是page的大小; 进一步查看kernel编译后的ELF文件，查看Program Header，可知有两个要加载到内存中的PH;</span></span><br><span class="line">    <span class="comment">//    其相对于kernel的ELF文件内的偏移分别是0x1000,0x9000;即第一个PH在ELF文件内的偏移为4KB;</span></span><br><span class="line">    </span><br><span class="line"></span><br><span class="line">	<span class="comment">// is this a valid ELF?</span></span><br><span class="line">	<span class="keyword">if</span> (ELFHDR-&gt;e_magic != ELF_MAGIC)</span><br><span class="line">		<span class="keyword">goto</span> bad;</span><br><span class="line">    <span class="comment">// 通过魔数判断是否是ELF文件</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// load each program segment (ignores ph flags)</span></span><br><span class="line">	ph = (<span class="keyword">struct</span> Proghdr *) ((<span class="type">uint8_t</span> *) ELFHDR + ELFHDR-&gt;e_phoff);</span><br><span class="line">    <span class="comment">// 加载到内存中的4KB数据为ELF头信息，包含了各个PH在ELF文件中的相对偏移，</span></span><br><span class="line">    <span class="comment">// 然后ph指针指向了第一个PH数据，</span></span><br><span class="line">    </span><br><span class="line">	eph = ph + ELFHDR-&gt;e_phnum;</span><br><span class="line">    <span class="comment">// 此处是指针运算，ph是指针，ELFHDR-&gt;e_phnum得到了ELF文件中PH的个数，通过指针移位，eph指向了最后一个PH结构体;</span></span><br><span class="line">	<span class="keyword">for</span> (; ph &lt; eph; ph++)</span><br><span class="line">		<span class="comment">// p_pa is the load address of this segment (as well</span></span><br><span class="line">		<span class="comment">// as the physical address)</span></span><br><span class="line">		readseg(ph-&gt;p_pa, ph-&gt;p_memsz, ph-&gt;p_offset);</span><br><span class="line">   		<span class="comment">// 加载PH到elf文件中指定的paddr;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// call the entry point from the ELF header</span></span><br><span class="line">	<span class="comment">// note: does not return!</span></span><br><span class="line">	((<span class="type">void</span> (*)(<span class="type">void</span>)) (ELFHDR-&gt;e_entry))();</span><br><span class="line">    <span class="comment">// 最后跳转到elf文件的入口地址，强制类型转换为void*函数调用,把控制权转移给内核;</span></span><br><span class="line"></span><br><span class="line">bad:</span><br><span class="line">	outw(<span class="number">0x8A00</span>, <span class="number">0x8A00</span>);</span><br><span class="line">	outw(<span class="number">0x8A00</span>, <span class="number">0x8E00</span>);</span><br><span class="line">	<span class="keyword">while</span> (<span class="number">1</span>)</span><br><span class="line">		<span class="comment">/* do nothing */</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Read &#x27;count&#x27; bytes at &#x27;offset&#x27; from kernel into physical address &#x27;pa&#x27;.</span></span><br><span class="line"><span class="comment">// Might copy more than asked</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">readseg</span><span class="params">(<span class="type">uint32_t</span> pa, <span class="type">uint32_t</span> count, <span class="type">uint32_t</span> offset)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">uint32_t</span> end_pa;</span><br><span class="line"></span><br><span class="line">	end_pa = pa + count;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// round down to sector boundary</span></span><br><span class="line">	pa &amp;= ~(SECTSIZE - <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// translate from bytes to sectors, and kernel starts at sector 1</span></span><br><span class="line">	offset = (offset / SECTSIZE) + <span class="number">1</span>;</span><br><span class="line">    <span class="comment">// 传入0实际读取磁盘的1扇区;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// If this is too slow, we could read lots of sectors at a time.</span></span><br><span class="line">	<span class="comment">// We&#x27;d write more to memory than asked, but it doesn&#x27;t matter --</span></span><br><span class="line">	<span class="comment">// we load in increasing order.</span></span><br><span class="line">	<span class="keyword">while</span> (pa &lt; end_pa) &#123;</span><br><span class="line">		<span class="comment">// Since we haven&#x27;t enabled paging yet and we&#x27;re using</span></span><br><span class="line">		<span class="comment">// an identity segment mapping (see boot.S), we can</span></span><br><span class="line">		<span class="comment">// use physical addresses directly.  This won&#x27;t be the</span></span><br><span class="line">		<span class="comment">// case once JOS enables the MMU.</span></span><br><span class="line">		readsect((<span class="type">uint8_t</span>*) pa, offset);</span><br><span class="line">		<span class="comment">// [sc]: offset might be the number of sector on disk</span></span><br><span class="line">		pa += SECTSIZE;</span><br><span class="line">		offset++;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> SECTSIZE	512</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ELFHDR		((struct Elf *) 0x10000) <span class="comment">// scratch space</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">readsect</span><span class="params">(<span class="keyword">void</span>*, <span class="keyword">uint32_t</span>)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">readseg</span><span class="params">(<span class="keyword">uint32_t</span>, <span class="keyword">uint32_t</span>, <span class="keyword">uint32_t</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bootmain</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Proghdr</span> *<span class="title">ph</span>, *<span class="title">eph</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// read 1st page off disk</span></span><br><span class="line">	readseg((<span class="keyword">uint32_t</span>) ELFHDR, SECTSIZE*<span class="number">8</span>, <span class="number">0</span>);</span><br><span class="line">	<span class="comment">// 此处调用readseg函数，从磁盘起始读取SECTSIXZE*8字节数据到内存ELFHDR处;大小刚好是4KB，即一个page;</span></span><br><span class="line">    <span class="comment">// 在readseg函数内部，实际从0+1扇区取数据，即从第二个扇区读4KB数据;因为bootloader占用了磁盘的0号扇区;</span></span><br><span class="line">    <span class="comment">// 读取到目的地址ELFHDR，即物理地址0x10000;读入4KB,则这块数据所占内存空间为0x10000 ~ 0x10fff;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// Q1: 为啥在此处读取4KB数据呢？</span></span><br><span class="line">    <span class="comment">// A: 4KB刚好是page的大小; 进一步查看kernel编译后的ELF文件，查看Program Header，可知有两个要加载到内存中的PH;</span></span><br><span class="line">    <span class="comment">//    其相对于kernel的ELF文件内的偏移分别是0x1000,0x9000;即第一个PH在ELF文件内的偏移为4KB;</span></span><br><span class="line">    </span><br><span class="line"></span><br><span class="line">	<span class="comment">// is this a valid ELF?</span></span><br><span class="line">	<span class="keyword">if</span> (ELFHDR-&gt;e_magic != ELF_MAGIC)</span><br><span class="line">		<span class="keyword">goto</span> bad;</span><br><span class="line">    <span class="comment">// 通过魔数判断是否是ELF文件</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// load each program segment (ignores ph flags)</span></span><br><span class="line">	ph = (struct Proghdr *) ((<span class="keyword">uint8_t</span> *) ELFHDR + ELFHDR-&gt;e_phoff);</span><br><span class="line">    <span class="comment">// 加载到内存中的4KB数据为ELF头信息，包含了各个PH在ELF文件中的相对偏移，</span></span><br><span class="line">    <span class="comment">// 然后ph指针指向了第一个PH数据，</span></span><br><span class="line">    </span><br><span class="line">	eph = ph + ELFHDR-&gt;e_phnum;</span><br><span class="line">    <span class="comment">// 此处是指针运算，ph是指针，ELFHDR-&gt;e_phnum得到了ELF文件中PH的个数，通过指针移位，eph指向了最后一个PH结构体;</span></span><br><span class="line">	<span class="keyword">for</span> (; ph &lt; eph; ph++)</span><br><span class="line">		<span class="comment">// p_pa is the load address of this segment (as well</span></span><br><span class="line">		<span class="comment">// as the physical address)</span></span><br><span class="line">		readseg(ph-&gt;p_pa, ph-&gt;p_memsz, ph-&gt;p_offset);</span><br><span class="line">   		<span class="comment">// 加载PH到elf文件中指定的paddr;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// call the entry point from the ELF header</span></span><br><span class="line">	<span class="comment">// note: does not return!</span></span><br><span class="line">	((<span class="keyword">void</span> (*)(<span class="keyword">void</span>)) (ELFHDR-&gt;e_entry))();</span><br><span class="line">    <span class="comment">// 最后跳转到elf文件的入口地址，强制类型转换为void*函数调用,把控制权转移给内核;</span></span><br><span class="line"></span><br><span class="line">bad:</span><br><span class="line">	outw(<span class="number">0x8A00</span>, <span class="number">0x8A00</span>);</span><br><span class="line">	outw(<span class="number">0x8A00</span>, <span class="number">0x8E00</span>);</span><br><span class="line">	<span class="keyword">while</span> (<span class="number">1</span>)</span><br><span class="line">		<span class="comment">/* do nothing */</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Read 'count' bytes at 'offset' from kernel into physical address 'pa'.</span></span><br><span class="line"><span class="comment">// Might copy more than asked</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">readseg</span><span class="params">(<span class="keyword">uint32_t</span> pa, <span class="keyword">uint32_t</span> count, <span class="keyword">uint32_t</span> offset)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">uint32_t</span> end_pa;</span><br><span class="line"></span><br><span class="line">	end_pa = pa + count;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// round down to sector boundary</span></span><br><span class="line">	pa &amp;= ~(SECTSIZE - <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// translate from bytes to sectors, and kernel starts at sector 1</span></span><br><span class="line">	offset = (offset / SECTSIZE) + <span class="number">1</span>;</span><br><span class="line">    <span class="comment">// 传入0实际读取磁盘的1扇区;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// If this is too slow, we could read lots of sectors at a time.</span></span><br><span class="line">	<span class="comment">// We'd write more to memory than asked, but it doesn't matter --</span></span><br><span class="line">	<span class="comment">// we load in increasing order.</span></span><br><span class="line">	<span class="keyword">while</span> (pa &lt; end_pa) &#123;</span><br><span class="line">		<span class="comment">// Since we haven't enabled paging yet and we're using</span></span><br><span class="line">		<span class="comment">// an identity segment mapping (see boot.S), we can</span></span><br><span class="line">		<span class="comment">// use physical addresses directly.  This won't be the</span></span><br><span class="line">		<span class="comment">// case once JOS enables the MMU.</span></span><br><span class="line">		readsect((<span class="keyword">uint8_t</span>*) pa, offset);</span><br><span class="line">		<span class="comment">// [sc]: offset might be the number of sector on disk</span></span><br><span class="line">		pa += SECTSIZE;</span><br><span class="line">		offset++;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>总的来说，bootmain函数先把内核的ElF文件头4KB读入内存，根据ELF头中的信息继续把内核中的多个Program Header 读入内存，最后跳转到内核entey执行，把控制权交给内核；</p>
 <h4 id="Layout-of-Kernel-Program-Header"><a href="#Layout-of-Kernel-Program-Header" class="headerlink" title="Layout of Kernel Program Header"></a>Layout of Kernel Program Header</h4><img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211010143601304.png" alt="image-20211010143601304" style="zoom:67%;" />
@@ -174,145 +115,30 @@
 <h3 id="Memory-Layout"><a href="#Memory-Layout" class="headerlink" title="Memory Layout"></a>Memory Layout</h3><img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgboot loader memory layout.svg" alt="image-20211010143601304" style="zoom:25%;" />
 
 
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://shangc1016/shangc1016.github.io/2022/04/06/xv6-x86-boot/" data-id="cl2r52f6c0008nrjh0qj93bpz" data-title="xv6-x86-boot" class="article-share-link">分享</a>
-      
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/os/" rel="tag">os</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/xv6/" rel="tag">xv6</a></li></ul>
 
-    </footer>
-  </div>
-  
-    
-<nav id="article-nav">
-  
-    <a href="/2022/04/20/xv6-intro/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">前一篇</strong>
-      <div class="article-nav-title">
-        
-          xv6-intro
-        
-      </div>
-    </a>
-  
-  
-</nav>
+<!--<a href="https://shangc1016/shangc1016.github.io/2022/04/06/xv6-x86-boot/#disqus_thread" class="article-comment-link">Comments</a>
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = ''; // required: replace example with your forum shortname
 
-  
-</article>
-
-
-</section>
-        
-          <aside id="sidebar">
-  
-    
-
-  
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">标签</h3>
-    <div class="widget">
-      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/os/" rel="tag">os</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/riscv/" rel="tag">riscv</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/xv6/" rel="tag">xv6</a></li></ul>
-    </div>
-  </div>
-
-
-  
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">标签云</h3>
-    <div class="widget tagcloud">
-      <a href="/tags/os/" style="font-size: 20px;">os</a> <a href="/tags/riscv/" style="font-size: 10px;">riscv</a> <a href="/tags/xv6/" style="font-size: 20px;">xv6</a>
-    </div>
-  </div>
-
-  
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">归档</h3>
-    <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/05/">五月 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">四月 2022</a></li></ul>
-    </div>
-  </div>
-
-
-  
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">最新文章</h3>
-    <div class="widget">
-      <ul>
-        
-          <li>
-            <a href="/2022/05/02/xv6-address-space/">xv6-address-space</a>
-          </li>
-        
-          <li>
-            <a href="/2022/04/26/xv6-trap/">xv6-trap</a>
-          </li>
-        
-          <li>
-            <a href="/2022/04/23/xv6-lab-shell/">xv6-lab-shell</a>
-          </li>
-        
-          <li>
-            <a href="/2022/04/20/xv6-intro/">xv6-intro</a>
-          </li>
-        
-          <li>
-            <a href="/2022/04/06/xv6-x86-boot/">xv6-x86-boot</a>
-          </li>
-        
-      </ul>
-    </div>
-  </div>
-
-  
-</aside>
-        
-      </div>
-      <footer id="footer">
-  
-  <div class="outer">
-    <div id="footer-info" class="inner">
-      
-      &copy; 2022 Shang<br>
-      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
-    </div>
-  </div>
-</footer>
-
-    </div>
-    <nav id="mobile-nav">
-  
-    <a href="/" class="mobile-nav-link">Home</a>
-  
-    <a href="/archives" class="mobile-nav-link">Archives</a>
-  
-</nav>
-    
-
-
-<script src="/js/jquery-3.4.1.min.js"></script>
-
-
-
-  
-<script src="/fancybox/jquery.fancybox.min.js"></script>
-
-
-
-
-<script src="/js/script.js"></script>
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript" target="_blank" rel="noopener">comments powered by Disqus.</a></noscript>
+-->
+<div style="display:none">
+<script src="http://s4.cnzz.com/stat.php?id=&web_id=" language="JavaScript"></script>script>
+</div>
 
 
 
 
 
-  </div>
+
 </body>
 </html>
