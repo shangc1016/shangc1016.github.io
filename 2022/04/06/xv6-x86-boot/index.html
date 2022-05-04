@@ -1,0 +1,144 @@
+<html>
+<head>
+	
+	<title>xv6-lab1</title>
+	<meta name="keywords" content="shangc;blog" />
+
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+    
+	   <link href="/css/main.css?v=3" rel="stylesheet" type="text/css" />
+    
+        
+<script src="/js/util.js"></script>
+
+        <script>
+            if(isMobile()) {
+                loadjscssfile('../css/mobile.css', 'css');
+            } else {
+                loadjscssfile('../css/desktop.css', 'css');
+            }
+        </script> 
+    
+
+    <link rel="alternate" type="application/atom+xml" href="/atom.xml" title="Atom feed">
+
+    
+	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=3"/>
+    
+    
+
+<meta name="generator" content="Hexo 6.1.0"></head>
+
+<body>
+
+
+<h2 class="title">xv6-lab1</h2>
+<!--
+<div style="text-align:center;margin-top: -10px;">
+<div class="article-category">
+发表于2022年4月6日
+
+
+
+
+ </div>
+-->
+</div>
+
+<ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#xv6-lab1-%E2%80%93-Booting-a-PC"><span class="toc-text">[xv6 lab1] – Booting a PC</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E7%A9%BA%E9%97%B4"><span class="toc-text">计算机物理内存空间</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Step1%EF%BC%9A%E4%BD%BF%E7%94%A8qemu"><span class="toc-text">Step1：使用qemu</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Step2%EF%BC%9ABIOS"><span class="toc-text">Step2：BIOS</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Step3%EF%BC%9ABoot-Loader"><span class="toc-text">Step3：Boot Loader</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Layout-of-Kernel-Program-Header"><span class="toc-text">Layout of Kernel Program Header</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Memory-Layout"><span class="toc-text">Memory Layout</span></a></li></ol></li></ol></li></ol>
+<h1 id="xv6-lab1-–-Booting-a-PC"><a href="#xv6-lab1-–-Booting-a-PC" class="headerlink" title="[xv6 lab1] – Booting a PC"></a>[xv6 lab1] – Booting a PC</h1><h3 id="计算机物理内存空间"><a href="#计算机物理内存空间" class="headerlink" title="计算机物理内存空间"></a>计算机物理内存空间</h3><p>早期的8086等处理器的物理内存布局如图所示，是20位总线的机器，因此其最大寻址空间是1MB；物理内存低地址端的640KB位系统可用内存、<code>640KB ~ 1MB</code>位系统其他资源的占用内存，其中最重要的部分是从<code>960KB ~ 1MB</code>地址的BIOS部分；其他部分由RAM组成，BIOS部分由ROM制度存储实现，后来由可重复读写的flash实现，满足BIOS升级等功能。</p>
+<img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211009203208456.png" alt="image-20211009203208456" style="zoom:67%;" />
+
+
+
+<p>从80286、80386开始机器总线扩展到32位，因此其最大物理寻址范围扩大到了4GB，为了物理内存布局的向后兼容性，在低地址端的1MB仍然保持了之前的内存布局。并且在32位机器上BIOS会使用4GB内存的高地址部分区域当作PCI设备的内存地址映射。因此在32位机器上，BIOS在整块内存上占了两个“洞”；</p>
+<img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211009204231494.png" alt="image-20211009204231494" style="zoom:67%;" />
+
+
+
+<h3 id="Step1：使用qemu"><a href="#Step1：使用qemu" class="headerlink" title="Step1：使用qemu"></a>Step1：使用qemu</h3><p>1、将实验环境搭建好，首先<code>make</code> 编译；可以看到编译之后新增加的文件，以及编译得到的结果<code>obj/kern/kernel.img</code>；</p>
+<img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211009205128689.png" alt="image-20211009205128689" style="zoom:67%;" />
+
+<p>2、<code>make qemu-gdb</code> 命令使用<code>qemu</code>调试编译产生的镜像文件；</p>
+<img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211009205528695.png" alt="image-20211009205528695" style="zoom:67%;" />
+
+<p>3、打开新的终端运行<code>make gdb</code>启动<code>gdb</code>调试；</p>
+<img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211009205648899.png" alt="image-20211009205648899" style="zoom:67%;" />
+
+
+
+<h3 id="Step2：BIOS"><a href="#Step2：BIOS" class="headerlink" title="Step2：BIOS"></a>Step2：BIOS</h3><p>1、使用<code>make gdb</code>命令进入<code>gdb</code>调试，可以看到<code>gdb</code>执行的第一条汇编指令<code>[f000:fff0] 0xffff0: ljmp $0x3630,$0xf000e05b</code>；即第一条指令地址位于<code>0xffff0</code>；此处好像是qemu的原因，实际长跳转到地址<code>0xfe05b</code>处执行；</p>
+<p>2、由第一小节的物理内存布局可以看到，地址<code>0xffff0</code>已经是BIOS区域的最后16字节了，16字节不足以完成BIOS的功能， 因此使用长跳转到BIOS内存低地址区域继续执行；</p>
+<p>3、即BIOS完成了硬件自检、设备初始化等设置，然后从磁盘中读取0号扇区（引导扇区）到内存地址<code>0x7c00</code>处，每个扇区大小512B，因此引导扇区所占内存<code>0x7c00 ~ 0x7dff</code>，最后BIOS逻辑跳转到引导扇区[CS：0x0000, IP：0x7c00]执行、将控制权转移到内核引导器；</p>
+<blockquote>
+<p>在20位机器或者在实模式中，物理地址<code>physics_address = CS * 16 + IP</code>；</p>
+<p>CS、IP寄存器都是16位寄存器；16位寄存器怎么表示20位地址偏移呢？使用CS向左偏移4位加上IP的值就可以组成了20位地址；</p>
+<p>BIOS干了什么：the BIOS intializes devices, sets of the interrupt routines, and reads the first sector of the boot device(e.g., hard-drive) into memory and jumps to it. </p>
+</blockquote>
+<img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211009210030129.png" alt="image-20211009210030129" style="zoom:67%;" />
+
+
+
+<h3 id="Step3：Boot-Loader"><a href="#Step3：Boot-Loader" class="headerlink" title="Step3：Boot Loader"></a>Step3：Boot Loader</h3><p>在上一小节最后，BIOS通过跳转到<code>0x7c00</code> 将控制权交给内核引导器Boot Loader；Boot Loader在源码中主要由两个文件<code>/boot/boot.S </code>，<code>boot/main.c</code>组成；其中Boot Loader做了两个重要操作：1、从实模式转到32位保护模式；2、加载操作系统内核到内存；</p>
+<p>1、<code>boot.s</code>在简单初始化之后打开了地址总线的A20地址线</p>
+<blockquote>
+<p>在早期的机器中总线是20位的，总线只有0~19，共1MB内存；后来内存扩展，为了保持向后兼容，A20地址线关闭表示地址译码为20位总线，打开表示使用更大的内存空间； </p>
+</blockquote>
+<p>2、<code>boot.s</code> 将CR0（control register控制寄存器）寄存器的0位置为1，开启保护模式、从实模式切换到保护模式；</p>
+<img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211010140113617.png" alt="image-20211010140113617" style="zoom:67%;" />
+
+<blockquote>
+<p>CR0 寄存器；</p>
+<p>PE（Protection Enable）开启保护模式：切换到保护模式后寻址方式发生变化，不再是之前的CS + IP，而是通过段选择子GDT、IDT等方式内存寻址；</p>
+<p>PG （Paging） 开启分页机制</p>
+</blockquote>
+<p>3、<code>boot.s</code>设置好栈指针寄存器的值，最后跳转到<code>main.c</code>中的<code>bootmain</code>函数执行；</p>
+<blockquote>
+<p>内存布局中，栈指针只要给一个初值就行，此处设置的栈指针初值是start段的地址，就是说让栈指针指向start段的末尾，栈从该处开始增长；</p>
+</blockquote>
+<p>4、上一步跳转到了<code>bootmain</code> 函数中，其中主要的代码片段如下；</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> SECTSIZE	512</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> ELFHDR		((struct Elf *) 0x10000) <span class="comment">// scratch space</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">readsect</span><span class="params">(<span class="type">void</span>*, <span class="type">uint32_t</span>)</span>;</span><br><span class="line"><span class="type">void</span> <span class="title function_">readseg</span><span class="params">(<span class="type">uint32_t</span>, <span class="type">uint32_t</span>, <span class="type">uint32_t</span>)</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">bootmain</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Proghdr</span> *<span class="title">ph</span>, *<span class="title">eph</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// read 1st page off disk</span></span><br><span class="line">	readseg((<span class="type">uint32_t</span>) ELFHDR, SECTSIZE*<span class="number">8</span>, <span class="number">0</span>);</span><br><span class="line">	<span class="comment">// 此处调用readseg函数，从磁盘起始读取SECTSIXZE*8字节数据到内存ELFHDR处;大小刚好是4KB，即一个page;</span></span><br><span class="line">    <span class="comment">// 在readseg函数内部，实际从0+1扇区取数据，即从第二个扇区读4KB数据;因为bootloader占用了磁盘的0号扇区;</span></span><br><span class="line">    <span class="comment">// 读取到目的地址ELFHDR，即物理地址0x10000;读入4KB,则这块数据所占内存空间为0x10000 ~ 0x10fff;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// Q1: 为啥在此处读取4KB数据呢？</span></span><br><span class="line">    <span class="comment">// A: 4KB刚好是page的大小; 进一步查看kernel编译后的ELF文件，查看Program Header，可知有两个要加载到内存中的PH;</span></span><br><span class="line">    <span class="comment">//    其相对于kernel的ELF文件内的偏移分别是0x1000,0x9000;即第一个PH在ELF文件内的偏移为4KB;</span></span><br><span class="line">    </span><br><span class="line"></span><br><span class="line">	<span class="comment">// is this a valid ELF?</span></span><br><span class="line">	<span class="keyword">if</span> (ELFHDR-&gt;e_magic != ELF_MAGIC)</span><br><span class="line">		<span class="keyword">goto</span> bad;</span><br><span class="line">    <span class="comment">// 通过魔数判断是否是ELF文件</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// load each program segment (ignores ph flags)</span></span><br><span class="line">	ph = (<span class="keyword">struct</span> Proghdr *) ((<span class="type">uint8_t</span> *) ELFHDR + ELFHDR-&gt;e_phoff);</span><br><span class="line">    <span class="comment">// 加载到内存中的4KB数据为ELF头信息，包含了各个PH在ELF文件中的相对偏移，</span></span><br><span class="line">    <span class="comment">// 然后ph指针指向了第一个PH数据，</span></span><br><span class="line">    </span><br><span class="line">	eph = ph + ELFHDR-&gt;e_phnum;</span><br><span class="line">    <span class="comment">// 此处是指针运算，ph是指针，ELFHDR-&gt;e_phnum得到了ELF文件中PH的个数，通过指针移位，eph指向了最后一个PH结构体;</span></span><br><span class="line">	<span class="keyword">for</span> (; ph &lt; eph; ph++)</span><br><span class="line">		<span class="comment">// p_pa is the load address of this segment (as well</span></span><br><span class="line">		<span class="comment">// as the physical address)</span></span><br><span class="line">		readseg(ph-&gt;p_pa, ph-&gt;p_memsz, ph-&gt;p_offset);</span><br><span class="line">   		<span class="comment">// 加载PH到elf文件中指定的paddr;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// call the entry point from the ELF header</span></span><br><span class="line">	<span class="comment">// note: does not return!</span></span><br><span class="line">	((<span class="type">void</span> (*)(<span class="type">void</span>)) (ELFHDR-&gt;e_entry))();</span><br><span class="line">    <span class="comment">// 最后跳转到elf文件的入口地址，强制类型转换为void*函数调用,把控制权转移给内核;</span></span><br><span class="line"></span><br><span class="line">bad:</span><br><span class="line">	outw(<span class="number">0x8A00</span>, <span class="number">0x8A00</span>);</span><br><span class="line">	outw(<span class="number">0x8A00</span>, <span class="number">0x8E00</span>);</span><br><span class="line">	<span class="keyword">while</span> (<span class="number">1</span>)</span><br><span class="line">		<span class="comment">/* do nothing */</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Read &#x27;count&#x27; bytes at &#x27;offset&#x27; from kernel into physical address &#x27;pa&#x27;.</span></span><br><span class="line"><span class="comment">// Might copy more than asked</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">readseg</span><span class="params">(<span class="type">uint32_t</span> pa, <span class="type">uint32_t</span> count, <span class="type">uint32_t</span> offset)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">uint32_t</span> end_pa;</span><br><span class="line"></span><br><span class="line">	end_pa = pa + count;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// round down to sector boundary</span></span><br><span class="line">	pa &amp;= ~(SECTSIZE - <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// translate from bytes to sectors, and kernel starts at sector 1</span></span><br><span class="line">	offset = (offset / SECTSIZE) + <span class="number">1</span>;</span><br><span class="line">    <span class="comment">// 传入0实际读取磁盘的1扇区;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// If this is too slow, we could read lots of sectors at a time.</span></span><br><span class="line">	<span class="comment">// We&#x27;d write more to memory than asked, but it doesn&#x27;t matter --</span></span><br><span class="line">	<span class="comment">// we load in increasing order.</span></span><br><span class="line">	<span class="keyword">while</span> (pa &lt; end_pa) &#123;</span><br><span class="line">		<span class="comment">// Since we haven&#x27;t enabled paging yet and we&#x27;re using</span></span><br><span class="line">		<span class="comment">// an identity segment mapping (see boot.S), we can</span></span><br><span class="line">		<span class="comment">// use physical addresses directly.  This won&#x27;t be the</span></span><br><span class="line">		<span class="comment">// case once JOS enables the MMU.</span></span><br><span class="line">		readsect((<span class="type">uint8_t</span>*) pa, offset);</span><br><span class="line">		<span class="comment">// [sc]: offset might be the number of sector on disk</span></span><br><span class="line">		pa += SECTSIZE;</span><br><span class="line">		offset++;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>总的来说，bootmain函数先把内核的ElF文件头4KB读入内存，根据ELF头中的信息继续把内核中的多个Program Header 读入内存，最后跳转到内核entey执行，把控制权交给内核；</p>
+<h4 id="Layout-of-Kernel-Program-Header"><a href="#Layout-of-Kernel-Program-Header" class="headerlink" title="Layout of Kernel Program Header"></a>Layout of Kernel Program Header</h4><img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20211010143601304.png" alt="image-20211010143601304" style="zoom:67%;" />
+
+<p>通过<code>objdump</code>查看kernel的ELF文件的Program Header，标记为LOAD的就是要加载到内存中的；</p>
+<blockquote>
+<p>off：该Program Header 在此ELF文件中的偏移量；</p>
+<p>vaddr：该Program Header加载到内存中后在虚拟内存中的偏移量；</p>
+<p>paddr：该Program Header加载到内存后在物理内存中的偏移量；</p>
+<p>vaddr和paddr可能是由linker加载器手工设定的；</p>
+</blockquote>
+<p>至此，内核完全加载完成；</p>
+<h3 id="Memory-Layout"><a href="#Memory-Layout" class="headerlink" title="Memory Layout"></a>Memory Layout</h3><img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgboot loader memory layout.svg" alt="image-20211010143601304" style="zoom:25%;" />
+
+
+
+<!--<a href="https://shangc1016/shangc1016.github.io/2022/04/06/xv6-x86-boot/#disqus_thread" class="article-comment-link">Comments</a>
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = ''; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+-->
+<div style="display:none">
+<script src="http://s4.cnzz.com/stat.php?id=&web_id=" language="JavaScript"></script>script>
+</div>
+
+
+
+
+
+
+</body>
+</html>

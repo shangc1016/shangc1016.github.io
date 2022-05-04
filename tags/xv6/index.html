@@ -1,20 +1,25 @@
 <html>
 <head>
 	
-	<title>shangc&#39;s blog</title>
+	<title></title>
 	<meta name="keywords" content="shangc;blog" />
 
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
     
-        <link href="/css/home.css?v=3" rel="stylesheet" type="text/css" />
+	   <link href="/css/main.css?v=3" rel="stylesheet" type="text/css" />
+    
         
-<link rel="stylesheet" href="/css/bootstrap.min.css">
+<script src="/js/util.js"></script>
 
-        
-<link rel="stylesheet" href="/css/bootstrap-theme.min.css">
-
+        <script>
+            if(isMobile()) {
+                loadjscssfile('../css/mobile.css', 'css');
+            } else {
+                loadjscssfile('../css/desktop.css', 'css');
+            }
+        </script> 
     
 
     <link rel="alternate" type="application/atom+xml" href="/atom.xml" title="Atom feed">
@@ -72,13 +77,6 @@
                     
                     
 <li class="list-group-item title">
-    <a target="_blank" href="/2022/05/04/hello-world/">Hello World</a>
-</li>
-
-
-                    
-                    
-<li class="list-group-item title">
     <a target="_blank" href="/2022/04/06/xv6-x86-boot/">xv6-lab1</a>
 </li>
 
@@ -97,11 +95,6 @@
     </div>
 </div>
 
-
-
-<!--加载导航栏所需js文件-->
-<script src="http://apps.bdimg.com/libs/jquery/2.1.1/jquery.min.js"></script>
-<script src="http://apps.bdimg.com/libs/bootstrap/3.3.0/js/bootstrap.min.js"></script>
 
 
 
