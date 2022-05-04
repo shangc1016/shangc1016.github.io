@@ -1,54 +1,120 @@
+
+<!DOCTYPE html>
 <html>
 <head>
-	
-	<title>xv6-trap</title>
-	<meta name="keywords" content="shangc;blog" />
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  
+  <title>xv6-trap | shangc&#39;s blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="xv6的trap机制syscall相关的riscv寄存器： stvec：ecall 指令跳转到这儿执行，这个寄存器存放的是trampoline的地址；trampline汇编代码是用户空间进如内核空间的代码 sepc：ecall指令把用户空间的pc指针保存在此 scause：ecall将其设置为8，表示一个系统调用 sscratch： trapframe的地址 sapt（S-mode address">
+<meta property="og:type" content="article">
+<meta property="og:title" content="xv6-trap">
+<meta property="og:url" content="https://shangc1016/shangc1016.github.io/2022/04/26/xv6-trap/index.html">
+<meta property="og:site_name" content="shangc&#39;s blog">
+<meta property="og:description" content="xv6的trap机制syscall相关的riscv寄存器： stvec：ecall 指令跳转到这儿执行，这个寄存器存放的是trampoline的地址；trampline汇编代码是用户空间进如内核空间的代码 sepc：ecall指令把用户空间的pc指针保存在此 scause：ecall将其设置为8，表示一个系统调用 sscratch： trapframe的地址 sapt（S-mode address">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220502162140783.png">
+<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220502161616200.png">
+<meta property="og:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220502163333366.png">
+<meta property="article:published_time" content="2022-04-26T13:53:04.000Z">
+<meta property="article:modified_time" content="2022-05-02T09:27:44.483Z">
+<meta property="article:author" content="Shang">
+<meta property="article:tag" content="os">
+<meta property="article:tag" content="xv6">
+<meta property="article:tag" content="riscv">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220502162140783.png">
+  
+    <link rel="alternative" href="/atom.xml" title="shangc&#39;s blog" type="application/atom+xml">
+  
+  
+  
+<link rel="stylesheet" href="/css/style.css">
 
-    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-
-    
-	   <link href="/css/main.css?v=3" rel="stylesheet" type="text/css" />
-    
-        
-<script src="/js/util.js"></script>
-
-        <script>
-            if(isMobile()) {
-                loadjscssfile('../css/mobile.css', 'css');
-            } else {
-                loadjscssfile('../css/desktop.css', 'css');
-            }
-        </script> 
-    
-
-    <link rel="alternate" type="application/atom+xml" href="/atom.xml" title="Atom feed">
-
-    
-	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=3"/>
-    
-    
+  
+    <link href="//fonts.useso.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <!--[if lt IE 9]><script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7/html5shiv.min.js"></script><![endif]-->
+  
+  
 
 <meta name="generator" content="Hexo 4.2.1"></head>
 
 <body>
+<div id="container">
+  <div id="wrap">
+    <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <nav id="upper-nav" class="inner">
+      <a id="main-nav-toggle" class="nav-icon"></a>
+      <div class="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        
+          <a id="nav-github" class="nav-icon" href="https://github.com/myname" target="_blank" rel="noopener"></a>
+        
+      </div>
+    </nav>
+    <div id="header-title">
+      
+        <h1 id="blog-title-wrap">
+          <a href="/" id="blog-title">My Blog</a>
+        </h1>
+      
+    </div>
+    <div id="contenedor">
+      <ul class="cube">
+        <li class="cara">MyLogo</li>
+        <li class="cara"></li>
+        <li class="cara"></li>
+        <li class="cara"></li>
+        <li class="cara"></li>
+        <li class="cara"></li>
+      </ul>
+    </div>
+    <nav id="main-nav">
+      
+        <a class="main-nav-link" href="/">Home</a>
+      
+        <a class="main-nav-link" href="/archives">Archives</a>
+      
+        <a class="main-nav-link" href="/about">About</a>
+      
+      <a class="main-nav-link st-search-show-outputs">搜索</a>
+    </nav>
+  </div>
+</header>
 
+    <div class="outer">
+      <section id="main"><article id="post-xv6-trap" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <h3 href="/2022/04/26/xv6-trap/" class="article-date">
+  <time datetime="2022-04-26T13:53:04.000Z" itemprop="datePublished">2022-04-26</time>
+</h3>
+    
+  </div>
+  <div class="article-inner">
+  <div class="curve-down">
+  <div class="fill-content">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      xv6-trap
+    </h1>
+  
 
-<h2 class="title">xv6-trap</h2>
-<!--
-<div style="text-align:center;margin-top: -10px;">
-<div class="article-category">
-发表于2022年4月26日
-
-
-
-
- </div>
--->
-</div>
-
-<ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#xv6的trap机制"><span class="toc-text">xv6的trap机制</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#syscall相关的riscv寄存器："><span class="toc-text">syscall相关的riscv寄存器：</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Sv39地址翻译"><span class="toc-text">Sv39地址翻译</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#以write为例，说明系统调用的过程："><span class="toc-text">以write为例，说明系统调用的过程：</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#以initcode的系统调用为例："><span class="toc-text">以initcode的系统调用为例：</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#执行ecall："><span class="toc-text">执行ecall：</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#进入usertrap"><span class="toc-text">进入usertrap</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#参考"><span class="toc-text">参考</span></a></li></ol>
-<h3 id="xv6的trap机制"><a href="#xv6的trap机制" class="headerlink" title="xv6的trap机制"></a>xv6的trap机制</h3><h4 id="syscall相关的riscv寄存器："><a href="#syscall相关的riscv寄存器：" class="headerlink" title="syscall相关的riscv寄存器："></a>syscall相关的riscv寄存器：</h4><ul>
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        
+        <h3 id="xv6的trap机制"><a href="#xv6的trap机制" class="headerlink" title="xv6的trap机制"></a>xv6的trap机制</h3><h4 id="syscall相关的riscv寄存器："><a href="#syscall相关的riscv寄存器：" class="headerlink" title="syscall相关的riscv寄存器："></a>syscall相关的riscv寄存器：</h4><ul>
 <li>stvec：ecall 指令跳转到这儿执行，这个寄存器存放的是trampoline的地址；trampline汇编代码是用户空间进如内核空间的代码</li>
 <li>sepc：ecall指令把用户空间的pc指针保存在此</li>
 <li>scause：ecall将其设置为8，表示一个系统调用</li>
@@ -113,30 +179,155 @@
 <li>taskset：绑定进程到某个CPU执行</li>
 </ul>
 
+      
+    </div>
+    <footer class="article-footer">
+      <div class="article-footer-content">
+        
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/os/" rel="tag">os</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/riscv/" rel="tag">riscv</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/xv6/" rel="tag">xv6</a></li></ul>
 
-<!--<a href="https://shangc1016/shangc1016.github.io/2022/04/26/xv6-trap/#disqus_thread" class="article-comment-link">Comments</a>
-<div id="disqus_thread"></div>
-<script type="text/javascript">
-    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
-    var disqus_shortname = ''; // required: replace example with your forum shortname
+        <a data-url="https://shangc1016/shangc1016.github.io/2022/04/26/xv6-trap/" data-id="cl2r5yvy00008wojh8mh73v20" class="article-share-link">分享到</a>
+        
+      </div>
+    </footer>
+  </div>
+  </div>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2022/05/02/xv6-address-space/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">下一篇</strong>
+      <div class="article-nav-title">
+        
+          xv6-address-space
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2022/04/23/xv6-lab-shell/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">上一篇</strong>
+      <div class="article-nav-title">xv6-lab-shell</div>
+    </a>
+  
+</nav>
 
-    /* * * DON'T EDIT BELOW THIS LINE * * */
-    (function() {
-        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
-        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-    })();
-</script>
-<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript" target="_blank" rel="noopener">comments powered by Disqus.</a></noscript>
--->
-<div style="display:none">
-<script src="http://s4.cnzz.com/stat.php?id=&web_id=" language="JavaScript"></script>script>
+  
+</article>
+
+
+</section>
+      
+      <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">近期文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2022/05/02/xv6-address-space/">xv6-address-space</a>
+          </li>
+        
+          <li>
+            <a href="/2022/04/26/xv6-trap/">xv6-trap</a>
+          </li>
+        
+          <li>
+            <a href="/2022/04/23/xv6-lab-shell/">xv6-lab-shell</a>
+          </li>
+        
+          <li>
+            <a href="/2022/04/20/xv6-intro/">xv6-intro</a>
+          </li>
+        
+          <li>
+            <a href="/2022/04/06/xv6-x86-boot/">xv6-x86-boot</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/os/" rel="tag">os</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/riscv/" rel="tag">riscv</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/xv6/" rel="tag">xv6</a><span class="tag-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/05/">五月 2022</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">四月 2022</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+</aside>
+      
+    </div>
+    <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2022 Shang<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+      .
+      Theme by <a href="https://github.com/sun11/hexo-theme-paperbox" target="_blank">Paperbox</a>
+    </div>
+  </div>
+</footer>
+  </div>
+  <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+  <a href="#search" class="mobile-nav-link st-search-show-outputs">搜索</a>
+</nav>
+
+  
+
+<!-- totop start -->
+<div id="totop">
+	<a title="返回顶部"></a>
 </div>
+<!-- totop end -->
+
+<!-- swiftype search start -->
+
+<!-- swiftype search end -->
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/lrsjng.jquery-qrcode/0.12.0/jquery.qrcode.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
 
 
 
 
+<script src="/js/script.js"></script>
 
 
+</div>
 </body>
 </html>
