@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>a-little-princess on 此时此刻</title>
+    <link>http://example.org/asc/</link>
+    <description>Recent content in a-little-princess on 此时此刻</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 12 Dec 2021 00:00:00 +0000</lastBuildDate><atom:link href="http://example.org/asc/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>xv6 lab1: xv6 and unix utilities</title>
+      <link>http://example.org/asc/cover/</link>
+      <pubDate>Sun, 12 Dec 2021 00:00:00 +0000</pubDate>
+      
+      <guid>http://example.org/asc/cover/</guid>
+      <description>配置 环境：ubuntu20.04
+跟着xv6-riscv-fall19做的：https://github.com/mit-pdos/xv6-riscv-fall19
+Lab: Xv6 and Unix utilities：https://pdos.csail.mit.edu/6.828/2019/labs/util.html
+安装依赖：
+sudo apt-get update &amp;amp;&amp;amp; sudo apt-get upgrade sudo apt-get install git build-essential gdb-multiarch qemu-system-misc gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu clone代码：
+git clone git@github.com:mit-pdos/xv6-riscv-fall19.git # 然后检查一下分支 git branch -a # 发现对应所有的几个实验，都有一个分支。 # 要做哪个实验，直接check进入，完成之后，`make grade`评分 # 如果哪个 test point没过，会有对应的xxx.out日志文件打印相关信息方便debug。 测试环境：
+make qemu qemu-system-riscv64 --version # 在一个xv6目录下 make qemu-gdb # 打开新的终端，同样目录下 gdb # 发现有错 Undefined item: &amp;#34;riscv:rv64&amp;#34;. # 然后发现需要risc-gdb没有弄好，需要riscv的gdb，或者可以用8.3.1以上的gdb。 启动 首先在kernel.ld这个链接脚本中设置了起始的地址为0x80000000，这个地址也是qemu中首先跳转执行的地址。对应到源码中是kernel/entry.S，可以看到entry.S代码给每个硬件线程设置好sp寄存器，然后跳转到start。
+_entry: # set up a stack for C.</description>
+    </item>
+    
+  </channel>
+</rss>
