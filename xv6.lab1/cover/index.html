@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+  <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+
+
+
+<title>xv6 lab1: xv6 and unix utilities - 此时此刻</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" type="image/x-icon">
+
+
+
+<link rel="stylesheet" href="/scss/style.min.d0921324c5ffcbf68f863d8e675739a6b1da644a80ab55151486c5dbeed76d78.css">
+</head>
+  <body>
+    <header class="header">
+  <div class="header__title">
+    <a href="http://shangc1016.github.io/">此时此刻</a>
+  </div>
+  <div class="headerNav">
+    <ul class="headerNav__items">
+      <li>
+        <a href="http://shangc1016.github.io/search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </a>
+      </li>
+    </ul>
+  </div>
+</header>
+
+<input type="checkbox" class="hidden toggle" id="menu-control" />
+    <main class="book-container flex">
+        
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav class="book-nav">
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="http://shangc1016.github.io/xv6.lab1/cover/" class=" active">xv6 lab1: xv6 and unix utilities</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+<div class="book-page">
+  <header class="book-menu-header">
+    
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+</div>
+
+ 
+  </header>
+  
+<div class="post">
+  
+  <div class="post__tags">
+    
+      <a class="post__tag" href="http://shangc1016.github.io/tags/xv6">xv6</a>
+    
+  </div>
+  
+
+  <section class="post__content">
+    <h1 id="title">xv6 lab1: xv6 and unix utilities</h1>
+    <div>
+      <article>
+          <h3 id="配置">配置</h3>
+<blockquote>
+<p>环境：ubuntu20.04</p>
+<p>跟着xv6-riscv-fall19做的：https://github.com/mit-pdos/xv6-riscv-fall19</p>
+<p>Lab: Xv6 and Unix utilities：https://pdos.csail.mit.edu/6.828/2019/labs/util.html</p>
+</blockquote>
+<p>安装依赖：</p>
+<div class="code-block-container"><div class="code-block-filename-container">
+    
+  </div>
+  <div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>sudo apt-get update <span style="color:#f92672">&amp;&amp;</span> sudo apt-get upgrade
+</span></span><span style="display:flex;"><span>sudo apt-get install git build-essential gdb-multiarch qemu-system-misc gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu </span></span></code></pre></div>
+  </div>
+</div><p>clone代码：</p>
+<div class="code-block-container"><div class="code-block-filename-container">
+    
+  </div>
+  <div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>git clone git@github.com:mit-pdos/xv6-riscv-fall19.git
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 然后检查一下分支</span>
+</span></span><span style="display:flex;"><span>git branch -a
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 发现对应所有的几个实验，都有一个分支。</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 要做哪个实验，直接check进入，完成之后，`make grade`评分</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 如果哪个 test point没过，会有对应的xxx.out日志文件打印相关信息方便debug。</span></span></span></code></pre></div>
+  </div>
+</div><p>测试环境：</p>
+<div class="code-block-container"><div class="code-block-filename-container">
+    
+  </div>
+  <div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>make qemu
+</span></span><span style="display:flex;"><span>qemu-system-riscv64 --version</span></span></code></pre></div>
+  </div>
+</div><div class="code-block-container"><div class="code-block-filename-container">
+    
+  </div>
+  <div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#75715e"># 在一个xv6目录下</span>
+</span></span><span style="display:flex;"><span>make qemu-gdb
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 打开新的终端，同样目录下</span>
+</span></span><span style="display:flex;"><span>gdb
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 发现有错 Undefined item: &#34;riscv:rv64&#34;.</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 然后发现需要risc-gdb没有弄好，需要riscv的gdb，或者可以用8.3.1以上的gdb。</span></span></span></code></pre></div>
+  </div>
+</div><h3 id="启动">启动</h3>
+<p>首先在kernel.ld这个链接脚本中设置了起始的地址为0x80000000，这个地址也是qemu中首先跳转执行的地址。对应到源码中是<code>kernel/entry.S</code>，可以看到entry.S代码给每个硬件线程设置好sp寄存器，然后跳转到start。</p>
+<div class="code-block-container"><div class="code-block-filename-container">
+    
+  </div>
+  <div><pre tabindex="0"><code class="language-assembly" data-lang="assembly">_entry:
+	# set up a stack for C.
+        # stack0 is declared in start.c,
+        # with a 4096-byte stack per CPU.
+        # sp = stack0 + (hartid * 4096)
+        la sp, stack0
+        li a0, 1024*4
+		csrr a1, mhartid    # mhartid：硬件线程id
+        addi a1, a1, 1
+        mul a0, a0, a1
+        add sp, sp, a0
+	# jump to start() in start.c
+        call start</code></pre>
+  </div>
+</div><ul>
+<li>其中la指令是伪指令（load address），stack0在start.c中定义，为每个cpu准备一个栈，每个栈大小写096</li>
+<li><code>li</code>（load immediate），设置寄存器a0为4096</li>
+<li>csrr(Control System Register)控制系统寄存器，读取数据到寄存器a1</li>
+</ul>
+<p>上面的步骤设置为start函数设置了相应的sp寄存器。然后进入<code>kernel/start.c</code>的<code>start()</code>函数中。</p>
+<p>在start函数中，进行各种设置，设置异常程序计数器指针为main函数，即异常处理程序。在start函数中，设置计时器开始，</p>
+<h3 id="util">Util</h3>
+<h5 id="实现用户进程sleep">实现用户进程sleep</h5>
+<ul>
+<li>先看xv-book的第一章</li>
+<li>参考其他的例子：<code>user/echo.c</code>，<code>user/grep.c</code> 等怎么从命令行接受参数</li>
+<li>如果用户使用sleep命令没有给出参数，打印出错误信息</li>
+<li>命令行参数是string类型，使用<code>user/ulib.c</code>中的函数<code>atoi</code>转换</li>
+<li>使用sleep系统调用</li>
+<li>在<code>kernel/sysproc.c</code>中查看sleep系统调用的实现，在<code>user/.h</code>中查看用户空间的sleep调用，在<code>user/usys.S</code>中查看从用户程序跳入内核的汇编程序。</li>
+<li>最后确保sleep函数调用了<code>exit()</code>来退出程序。</li>
+<li>在Makefile中的UPROGS中添加自己是先的sleep函数，然后编译，就可以在shell运行sleep。</li>
+</ul>
+<blockquote>
+<p>额外的函数：实现uptime用户程序，打印系统启动uptime的ticks数。</p>
+<p>解析：</p>
+<ul>
+<li>在<code>kernel/start.c</code>中的<code>start</code>函数中，调用了<code>timerinit()</code>，其中注释提到时钟中断间隔为1000000个interval、大概是1/10秒。暂停用户定义的ticks，即sleep参数和用户输入一致。</li>
+</ul>
+</blockquote>
+<h5 id="实现用户进程pingpong">实现用户进程pingpong</h5>
+<blockquote>
+<p>利用管道实现一个ping-pong程序，父进程写入parent_id[1]一个字节，子进程从parent_id[0]读取这个字节，子进程读完之后，把数据写入child_id[1]，然后父进程再从child_id[0]读出来。</p>
+</blockquote>
+<ul>
+<li>使用<code>pipe</code>创建管道</li>
+<li>使用<code>fork</code>创建子进程</li>
+<li>使用<code>read</code>、<code>write</code>读写数据</li>
+<li>使用<code>getpid</code>得到进程号</li>
+</ul>
+<blockquote>
+<p>这个比较简单，还用不到覆盖标准输入输出等；重定向</p>
+<p>解析：<code>pipe</code>系统调用怎么实现的</p>
+</blockquote>
+<h5 id="实现用户进程primes">实现用户进程primes</h5>
+<blockquote>
+<p>关于管道、重定向</p>
+</blockquote>
+<ul>
+<li>写一个并发版本的素数过滤器，</li>
+<li>使用fork以及pipe建立流水线、第一个进程把数字2-35打入pipe，从左到右输出每一个在其中的素数。</li>
+<li>参考这个：https://swtch.com/~rsc/thread/，这个图的说明已经非常清楚了。</li>
+</ul>
+<p><img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com//md-imgimage-20220419210709326.png" alt="image-20220419210709326"></p>
+<h5 id="实现用户进程find">实现用户进程find</h5>
+<ul>
+<li>先看<code>user/ls.c</code>，明确怎么读目录</li>
+<li>递归的遍历子目录</li>
+<li>不用遍历<code>.</code>和<code>..</code></li>
+<li>对文件系统的更改是持久化的，需要<code>make clean</code>、然后重新<code>make qemu</code></li>
+<li>要用到C语言的strings</li>
+</ul>
+<h5 id="实现用户进程xargs">实现用户进程xargs</h5>
+<ul>
+<li>从标准输入读入多行，然后依次执行</li>
+<li>对于每行输入，使用fork以及exec系统调用。在父进程中使用wait等待子进程结束</li>
+<li>每次从标准输入读一个字符，知道读到换行符\n</li>
+<li>参考kernel/param.h，中的MAXARG</li>
+<li>对文件系统的更新是持久化的，通过make clean，重新编译make qemu</li>
+</ul>
+<blockquote>
+<p>这儿遇到一个问题，在有argv的情况下，怎么读stdin？</p>
+<p>最后发现是我太蠢了，运行程序<code>./xargs arg1 arg2 ...[\n回车]</code>，程序运行了，
+然后接下来的输入才对应的是从标准输入中独到的内容。</p>
+<div class="code-block-container"><div class="code-block-filename-container">
+    
+  </div>
+  <div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>&gt;./xargs grep hello
+</span></span><span style="display:flex;"><span>./a/b
+</span></span><span style="display:flex;"><span>./c/b
+</span></span><span style="display:flex;"><span>./b
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 这个命令中&#34;grep hello&#34;是命令行的参数，在输完hello，回车之后程序运行。接下来从./a/b开始的才是标准输入读的内容。</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 如果用一个数组接收标准输入的数据，应该是“./a/b[space]./c/b[space]./b[\n]”</span></span></span></code></pre></div>
+  </div>
+</div><p>最后遇到一个问题，给argv直接追加项，导致没追加签的argv的最后一项的值变了，最后把srgv以及标准输入读的参数复制到另一个数组解决。</p>
+</blockquote>
+<h3 id="文件系统相关概念">文件系统相关概念</h3>
+<p>在find程序中，参考了ls。find的格式是<code>find &lt;path&gt; &lt;file&gt;</code>，即在路径下找到匹配的文件。那么首先即使要打开path这个文件，所有的路径对应于一个文件。</p>
+<p>在文件系统的实现中，文件和目录其实没啥区别，区别仅在于目录文件中放的是目录信息。而文件里面放的是自定义的数据。</p>
+<p>因此在实现中，先判断path的类型。</p>
+<ul>
+<li>
+<p>如果是文件，判断是否和文件名相同，相同则输出。</p>
+</li>
+<li>
+<p>如果是目录，就从次文件中读一个目录项，直到读完。针对每个读出来的目录项，递归的判断是文件还是目录，然后做相同的处理。</p>
+<div class="code-block-container"><div class="code-block-filename-container">
+    
+  </div>
+  <div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">struct</span> dirent {
+</span></span><span style="display:flex;"><span>  ushort inum;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">char</span> name[DIRSIZ];
+</span></span><span style="display:flex;"><span>};</span></span></code></pre></div>
+  </div>
+</div></li>
+</ul>
+<p>在ls程序中，打印出了路径下的所有“文件”，包括文件，目录， 设备（在kernel/stat.h，1表示目录，2表示文件，3表示设备）。“文件”的stat结构体相当于“文件”的元数据，定义在kernel/stat.h</p>
+<div class="code-block-container"><div class="code-block-filename-container">
+    
+  </div>
+  <div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">struct</span> stat {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">int</span> dev;     <span style="color:#75715e">// File system&#39;s disk device
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  uint ino;    <span style="color:#75715e">// Inode number
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">short</span> type;  <span style="color:#75715e">// Type of file
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">short</span> nlink; <span style="color:#75715e">// Number of links to file
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  uint64 size; <span style="color:#75715e">// Size of file in bytes
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>};</span></span></code></pre></div>
+  </div>
+</div><p>其中dev表示的是disk device，表示哪一个磁盘，ino表示在这个磁盘上的inode号码，type表示哪种“文件”，有文件、目录、设备三种；nlink表示链接数量；size表示文件的大小。</p>
+<p>通过在xv6中运行ls程序：</p>
+<p><img src="https://note-img-1300721153.cos.ap-nanjing.myqcloud.com/md-imgimage-20220423144333114.png" alt="image-20220423144333114"></p>
+<p>得到的结果表示所有的文件都在同一个磁盘设备，第二列表示文件类型，第三列表示inode号，根据第四列文件大小可以计算inode号。可以看到在这个文件系统中，一个inode负责1kb大小的磁盘空间。</p>
+<blockquote>
+<p>TODO：关于生成文件系统这部分的代码在mkfs，随后在看。</p>
+<p>关于怎么把kernel和fs.img链接起来，应该在kernel.ld 链接文件中或者makefile中，这个随后看。</p>
+</blockquote>
+<h3 id="syscall">syscall</h3>
+<p>在xv6的系统调用中，调用顺序是这样的：</p>
+<div class="code-block-container"><div class="code-block-filename-container">
+    
+  </div>
+  <div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>user_program --&gt; user_lib<span style="color:#f92672">(</span>ulib.c<span style="color:#f92672">)</span> --&gt; user_trap<span style="color:#f92672">(</span>usys.S<span style="color:#f92672">)</span> --&gt; syscall -&gt; sys_xxx
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># user_lib主要是对系统调用的一个wrap，也可以不调用user_lib，直接调用usys.S中的函数。</span></span></span></code></pre></div>
+  </div>
+</div><ol>
+<li>首先在<code>user</code>目录下的是用户程序，如<code>ls</code>、<code>cat</code>等。</li>
+<li>上面这些代码可能会使用到系统调用，用户的库的头文件是<code>user/user.h</code>，声明了系统调用的接口。</li>
+<li>库文件的实现在<code>user/usys.S</code>汇编代码真正<code>trap</code>进入内核
+<ol>
+<li><code>riscv</code>的系统功能的汇编指令：<code>ecall</code>，携带参数进入内核。其中系统调用号放在寄存器<code>a7</code></li>
+</ol>
+</li>
+<li>由内核中的<code>kernel/syscall.c</code>中的<code>syscall</code>函数作为系统调用的相应函数，根据不同的中断号执行不同的系统调用<code>sys_xxx</code>函数。</li>
+</ol>
+<h3 id="c语言内嵌汇编">C语言内嵌汇编</h3>
+<p>参考：https://blog.csdn.net/yt_42370304/article/details/84982864</p>
+<div class="code-block-container"><div class="code-block-filename-container">
+    
+  </div>
+  <div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">asm</span> <span style="color:#66d9ef">volatile</span>(<span style="color:#e6db74">&#34;xxx&#34;</span>)</span></span></code></pre></div>
+  </div>
+</div><ul>
+<li>asm：表示后面的是汇编代码</li>
+<li>volatile：表示编译器不需要优化代码，后面的指令保持原样</li>
+</ul>
+<p>内嵌汇编语法：<code>__asm__(汇编模板语句：输出部分：输入部分：破坏描述部分)</code></p>
+<p>%0,%1&hellip;.代表参数，位置互相对应。</p>
+<div class="code-block-container"><div class="code-block-filename-container">
+    
+  </div>
+  <div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">inline</span> uint64
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">r_mstatus</span>()
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  uint64 x;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">asm</span> <span style="color:#66d9ef">volatile</span>(<span style="color:#e6db74">&#34;csrr %0, mstatus&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;=r&#34;</span> (x) );
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> x;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// &#34;=r&#34;的意思是：变量放入通用寄存器，并且是只写的
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 对应的汇编：csrr [寄存器], mstatus；寄存器值与x变量绑定，x作为输出参数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">inline</span> <span style="color:#66d9ef">void</span> 
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">w_mstatus</span>(uint64 x)
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">asm</span> <span style="color:#66d9ef">volatile</span>(<span style="color:#e6db74">&#34;csrw mstatus, %0&#34;</span> <span style="color:#f92672">:</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;r&#34;</span> (x));
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// &#34;r&#34;的意思是：变量放入通用寄存器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 对应的汇编：csrr mstatus, [寄存器]；寄存器值与x变量绑定，x作为输入参数
+</span></span></span></code></pre></div>
+  </div>
+</div><h3 id="源码安装gdb831">源码安装gdb8.3.1</h3>
+<div class="code-block-container"><div class="code-block-filename-container">
+    
+  </div>
+  <div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>PREFIX<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>pwd<span style="color:#66d9ef">)</span>/gdb-8.3.1-riscv64-linux-gnu
+</span></span><span style="display:flex;"><span>wget ftp://ftp.gnu.org/gnu/gdb/gdb-8.3.1.tar.xz
+</span></span><span style="display:flex;"><span>tar Jxf gdb-8.3.1.tar.xz
+</span></span><span style="display:flex;"><span>mkdir gdb
+</span></span><span style="display:flex;"><span>cd gdb
+</span></span><span style="display:flex;"><span>../gdb-8.3.1/configure --program-prefix<span style="color:#f92672">=</span>riscv64-linux-gnu- --enable-tui --target<span style="color:#f92672">=</span>riscv64-linux-gnu --prefix<span style="color:#f92672">=</span><span style="color:#e6db74">${</span>PREFIX<span style="color:#e6db74">}</span>
+</span></span><span style="display:flex;"><span>make all install</span></span></code></pre></div>
+  </div>
+</div><h3 id="参考资料">参考资料</h3>
+<ul>
+<li><a href="https://zhuanlan.zhihu.com/p/266502391">3.9 XV6 启动过程</a></li>
+<li><a href="https://github.com/riscv-non-isa/riscv-asm-manual/blob/master/riscv-asm.md">RISC-V Assembly Programmer&rsquo;s Manual</a></li>
+<li><a href="https://jborza.com/emulation/2021/04/22/ecalls-and-syscalls.html#:~:text=RISC%2DV%20offers%20an%20ecall,higher%20privileged%20code%20(kernel).">Misunderstanding RISC-V ecalls and syscalls</a></li>
+<li>CSR（Control and Status Register Instructions）：读写寄存器</li>
+<li>AUIPC（Add Upper Immediate to Program Counter）：这个指令把PC寄存器的高20位设置为操作数的和，低12位为0</li>
+<li>在<code>kernel/syscall.c</code>中syscalls，系统调用数组声明为啥是这样的？https://stackoverflow.com/questions/17807103/array-assignment-by-index-while-declaration-in-c-language；这样声明可以乱序初始化。emm</li>
+</ul>
+
+      </article>
+    </div>
+  </section>
+</div>
+ 
+
+  <label for="menu-control" class="hidden book-menu-overlay"></label>
+</div>
+
+          
+    </main><footer class="footer">
+  <span>&copy; 2023 <a href="http://shangc1016.github.io/">此时此刻</a></span>
+</footer>
+
+
+  </body>
+</html>
