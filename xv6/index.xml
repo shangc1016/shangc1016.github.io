@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>此时此刻</title>
-    <link>http://shangc1016.github.io/</link>
-    <description>Recent content on 此时此刻</description>
+    <title>xv6 lab on 此时此刻</title>
+    <link>http://shangc1016.github.io/xv6/</link>
+    <description>Recent content in xv6 lab on 此时此刻</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 12 Dec 2021 00:00:00 +0000</lastBuildDate><atom:link href="http://shangc1016.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 12 Dec 2021 00:00:00 +0000</lastBuildDate><atom:link href="http://shangc1016.github.io/xv6/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>lab1: xv6 &amp; unix utilities</title>
       <link>http://shangc1016.github.io/xv6/1.lab1/</link>
@@ -47,15 +47,6 @@ hints 不要使用动态内存分配如malloc，只能使用局部变量以及�
 重定向：&amp;gt;、&amp;lt;
 对于管道和重定向同时存在的情况，管道的优先级要高，那就是先处理管道、再处理重定向。
 管道把命令分成了两部分，先执行管道左侧的命令，然后创建管道，写入数据；再执行右侧命令，从管道读数据，处理。 重定向负责把标准输入、输出、错误重定向到某个文件？ 对于重定向输出，fork执行&amp;gt;左侧的命令的时候，设置重定向 对于重定向输入，fork执行&amp;lt;右侧的命令的时候，设置重定向 示例 echo hello there echo something &amp;gt; file.txt ls | grep READ grep lion &amp;lt; data.txt | wc &amp;gt; count echo echo hello | nsh find . b | xargs grep hello Bugs 遇到的第一个问题就是不太会处理字符串，然后也没有用sh.c中的其他函数。 第二个问题是不会读数据，最后发现构造的测试样例是每个命令以\n结尾。然后就是在读输入时，遇到\n就break，如果读到文件结束就退出，测试层序会多次调用nsh进程。 第三个问题就是我知道posix管道是半双工的，但是在父进程创建管道之后，写管道子进程没有关闭管道的读管道描述符；读管道子进程也没有关闭写管道描述符，然后造成了程序的undefined behavior，太蠢了。最后在ULK的page768找到解决方案。 最后一个坑是先写管道，写完之后要及时关闭写管道描述符，我只是在子进程中关闭了写管道描述符，但是在父进程中没有关（管道可以被多个进程读写、需要加锁保证数据可用），导致了后半段命令的子进程一直sleep，不能读到管道EOF，然后退出进程。 这个问题在源代码中反映为user/nsh.c中88-91行，debug之前是先两个wait，然后两个close。太蠢了。 xv6-book片段 fork和exec分成两步的原因就是在这两个系统调用中间可以插入一个IO重定向的部分。这样就能在不修改代码的情况下实现多个程序的连接 fork以及dup系统调用之后，父子进程对于同一个打开的文件描述符共享同一个文件偏移，因此下面的代码会输出hello,world到文件。这也是多个shell命令实现的方式。 2&amp;gt;&amp;amp;1：这个命令的意思是对于shell命令，把文件描述符2设置为文件描述符1的复制，即 close（2）; dup(1); 这样做，可以让shell把标准输出和标准错误合并到同一个输出文件中。 管道pipe中，写管道结束之后，应该关闭管道的写一侧，否则管道的读一侧会一直阻塞。 </description>
-    </item>
-    
-    <item>
-      <title>Search</title>
-      <link>http://shangc1016.github.io/search/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
-      <guid>http://shangc1016.github.io/search/</guid>
-      <description></description>
     </item>
     
   </channel>

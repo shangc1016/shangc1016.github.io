@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+  <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+
+
+
+<title>xv6的trap机制 - 此时此刻</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" type="image/x-icon">
+
+
+
+<link rel="stylesheet" href="/scss/style.min.d0921324c5ffcbf68f863d8e675739a6b1da644a80ab55151486c5dbeed76d78.css">
+</head>
+  <body>
+    <header class="header">
+  <div class="header__title">
+    <a href="http://shangc1016.github.io/">此时此刻</a>
+  </div>
+  <div class="headerNav">
+    <ul class="headerNav__items">
+      <li>
+        <a href="http://shangc1016.github.io/search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </a>
+      </li>
+    </ul>
+  </div>
+</header>
+
+<input type="checkbox" class="hidden toggle" id="menu-control" />
+    <main class="book-container flex">
+        
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav class="book-nav">
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="http://shangc1016.github.io/xv6/1.lab1/" class="">lab1: xv6 &amp; unix utilities</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="http://shangc1016.github.io/xv6/2.trap/" class=" active">xv6的trap机制</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="http://shangc1016.github.io/xv6/3.lab2/" class="">lab2: Simple xv6 shell</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+<div class="book-page">
+  <header class="book-menu-header">
+    
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+</div>
+
+ 
+  </header>
+  
+<div class="post">
+  
+  <div class="post__tags">
+    
+      <a class="post__tag" href="http://shangc1016.github.io/tags/xv6">xv6</a>
+    
+  </div>
+  
+
+  <section class="post__content">
+    <h1 id="title">xv6的trap机制</h1>
+    <div>
+      <article>
+          <h3 id="xv6的trap机制">xv6的trap机制</h3>
+<h4 id="syscall相关的riscv寄存器">syscall相关的riscv寄存器：</h4>
+<ul>
+<li>stvec：ecall 指令跳转到这儿执行，这个寄存器存放的是trampoline的地址；trampline汇编代码是用户空间进如内核空间的代码</li>
+<li>sepc：ecall指令把用户空间的pc指针保存在此</li>
+<li>scause：ecall将其设置为8，表示一个系统调用</li>
+<li>sscratch： trapframe的地址</li>
+<li>sapt（S-mode address translation and protection）：寄存器保存当前的页表基址</li>
+<li>a0-a7：系统调用的参数</li>
+<li>ra：返回地址</li>
+<li>a0：返回值</li>
+<li>a7：syscall的号码</li>
+<li>tp：当前cpu线程号</li>
+</ul>
+<h4 id="sv39地址翻译">Sv39地址翻译</h4>
+<p>可以看到，虚拟地址用到了64位中的低39位，即最大的虚拟地址空间0x4000000000</p>
+<!-- raw HTML omitted -->
+<h4 id="以write为例说明系统调用的过程">以write为例，说明系统调用的过程：</h4>
+<ul>
+<li>write()
+<ul>
+<li>trampoline / uservec
+<ul>
+<li>usertrap()
+<ul>
+<li>syscall()
+<ul>
+<li>sys_write()</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>usertrapret()</li>
+</ul>
+</li>
+<li>trampoline / userret</li>
+</ul>
+</li>
+<li>write()返回</li>
+</ul>
+<p>以sh.c中的write系统调用为例子说明：</p>
+<ol>
+<li>首先查看sh.c的objdump代码sh.asm，查看到write函数直接调用的是<code>user/usys.S</code>的write函数，并且地址是<code>0000000000000d6a</code>，然后进入gdb调试。</li>
+<li>在执行ecall指令之前，查看各个寄存器的值，包括pc、sapt、sepc、stvec、scause、sscratch以及a0</li>
+<li>然后si单步执行ecall，进入到<code>kernel/trampoline.S</code>执行，
+<ol>
+<li>首先，把sscratch寄存器与a0寄存器的值交换，然后此时a0寄存器就是trapframe的地址，即要把当前进程的寄存器保存到a0寄存器所存的地址对应的页表中。</li>
+<li>最后跳转到进程结构体p-&gt;tf-&gt;kernel_trap处执行，（这个在<code>kernel/trap.c</code>中<code>usertrapret</code>中设置进程的内核trap处理函数为usertrap）</li>
+</ol>
+</li>
+<li>然后进入<code>kernel/trap.c</code>的<code>usertrap</code>执，因为已经进入内核，首先在函数中切换中断处理为kernelvec</li>
+<li>判断sscause寄存器的值是否为8，如果是8，就说明是来自用户空间的syscall。然后把寄存器epc的值保存到当前进程结构体中，并且epc+4，即反悔的时候直接执行ecall的下一条指令。</li>
+<li>最后调用syscall()，根据寄存器a7选择相应的系统调用处理函数，最后把返回值置给寄存器a0，最后返回。</li>
+<li>首先回到<code>usertrapret</code>函数中，设置进程关于内核的一些参数，如内核satp、kernel_sp进程的内核栈地址，进程trap的处理函数等，最后跳转到trampoline的userret处执行，重新从trapframe中把各个寄存器数据回复到物理的寄存器上，然后返回用户进程。</li>
+</ol>
+<h4 id="以initcode的系统调用为例">以initcode的系统调用为例：</h4>
+<!-- raw HTML omitted -->
+<h4 id="执行ecall">执行ecall：</h4>
+<!-- raw HTML omitted -->
+<h4 id="进入usertrap">进入usertrap</h4>
+<ul>
+<li>设置stvec寄存器为kernelvec，表示已经进入内核，相应的中断处理要由内核完成。</li>
+<li>判断scause寄存器的值，如果是8，表示syscall，先把epc+4，即返回的时候直接执行ecall的下一条指令</li>
+<li>执行syscall函数，根据a7寄存器执行sys_xxx，返回值放在a0寄存器</li>
+<li>进入usertrapret
+<ul>
+<li>关中断，写stvec寄存器为trampoline的userret。当当前不处理其他的中断，唯一处理的是进程从内核返回用户态，使用的代码是trampoline中的userret。</li>
+<li>设置好各种参数，包括设置epc为进程保存的epc、然后把sapt寄存器设置为当前进程的页表基址</li>
+<li>最后执行trampoline中的userret，回复进程现场，返回到用户态，继续执行ecall的下一条指令</li>
+</ul>
+</li>
+</ul>
+<h3 id="参考">参考</h3>
+<ul>
+<li>gdb调试：gdb调试有一个.gdbinit ，可以吧进入gdb之后的固定配置写到里面。执行命令gdb。首先执行这些命令。</li>
+<li>进程优先级：通过nice 调整，nice的取值-20-19，数字越大，优先级越低</li>
+<li>taskset：绑定进程到某个CPU执行</li>
+</ul>
+
+      </article>
+    </div>
+  </section>
+</div>
+ 
+
+  <label for="menu-control" class="hidden book-menu-overlay"></label>
+</div>
+
+          
+    </main><footer class="footer">
+  <span>&copy; 2023 <a href="http://shangc1016.github.io/">此时此刻</a></span>
+</footer>
+
+
+  </body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+  <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+
+
+
+<title>lab2: Simple xv6 shell - 此时此刻</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" type="image/x-icon">
+
+
+
+<link rel="stylesheet" href="/scss/style.min.d0921324c5ffcbf68f863d8e675739a6b1da644a80ab55151486c5dbeed76d78.css">
+</head>
+  <body>
+    <header class="header">
+  <div class="header__title">
+    <a href="http://shangc1016.github.io/">此时此刻</a>
+  </div>
+  <div class="headerNav">
+    <ul class="headerNav__items">
+      <li>
+        <a href="http://shangc1016.github.io/search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </a>
+      </li>
+    </ul>
+  </div>
+</header>
+
+<input type="checkbox" class="hidden toggle" id="menu-control" />
+    <main class="book-container flex">
+        
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav class="book-nav">
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="http://shangc1016.github.io/xv6/1.lab1/" class="">lab1: xv6 &amp; unix utilities</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="http://shangc1016.github.io/xv6/2.trap/" class="">xv6的trap机制</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="http://shangc1016.github.io/xv6/3.lab2/" class=" active">lab2: Simple xv6 shell</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+<div class="book-page">
+  <header class="book-menu-header">
+    
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+</div>
+
+ 
+  </header>
+  
+<div class="post">
+  
+  <div class="post__tags">
+    
+      <a class="post__tag" href="http://shangc1016.github.io/tags/xv6">xv6</a>
+    
+  </div>
+  
+
+  <section class="post__content">
+    <h1 id="title">lab2: Simple xv6 shell</h1>
+    <div>
+      <article>
+          <h2 id="simple-xv6-shell">Simple xv6 shell</h2>
+<p>写一个xv6的shell，可以处理输入输出、重定向、管道。</p>
+<p>shell文件应该位于user/nsh.c，然后更新makefile，自己实现的shell中的prompt应该使用符号@，以便于和原本的shell的$区分。</p>
+<h3 id="hints">hints</h3>
+<ul>
+<li>不要使用动态内存分配如malloc，只能使用局部变量以及全局变量。（但是这个感觉有点骗测试的样子orz）</li>
+<li>可以做出一些强制限制，比如命令的长度、参数的个数、每个参数的长度等（便于静态声明变量）</li>
+<li>nsh的测试文件为testsh，运行方式为testsh nsh</li>
+<li>不用merge之前的实验，也基本用不到之前的代码。</li>
+<li>不用实现testsh中没有的测试点，比如对括号以及引用的解析</li>
+<li>参考K&amp;R的C书， 比如5.12节的gettoken很有用</li>
+<li>xv6的shell复杂的多，可以借鉴。复用代码须注释说明</li>
+<li>可以使用用户空间的库user/ulib.c</li>
+<li>及时关闭不使用的文件描述符</li>
+<li>所有的系统调用需要检查返回值，是否正确</li>
+<li>testsh会重定向shell的标准输出，在shell中把error以及debug信息输出到fd 2。</li>
+<li>关注testsh中的one函数，可能会有用。</li>
+</ul>
+<blockquote>
+<p>intend： 这个lab主要应该还是让用一用syscall，理解syscall过程。然后多用一用fork、exec、pipe，redirect等等吧。那些东西是父子进程共享的，那些是独有的。然后看代码。</p>
+</blockquote>
+<p>管道：|</p>
+<p>重定向：&gt;、&lt;</p>
+<p>对于管道和重定向同时存在的情况，管道的优先级要高，那就是先处理管道、再处理重定向。</p>
+<ul>
+<li>管道把命令分成了两部分，先执行管道左侧的命令，然后创建管道，写入数据；再执行右侧命令，从管道读数据，处理。</li>
+<li>重定向负责把标准输入、输出、错误重定向到某个文件？</li>
+<li>对于重定向输出，fork执行&gt;左侧的命令的时候，设置重定向</li>
+<li>对于重定向输入，fork执行&lt;右侧的命令的时候，设置重定向</li>
+</ul>
+<h3 id="示例">示例</h3>
+<div class="code-block-container"><div class="code-block-filename-container">
+    
+  </div>
+  <div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span> echo hello there
+</span></span><span style="display:flex;"><span> echo something &gt; file.txt
+</span></span><span style="display:flex;"><span> ls | grep READ
+</span></span><span style="display:flex;"><span> grep lion &lt; data.txt | wc &gt; count
+</span></span><span style="display:flex;"><span> echo echo hello | nsh
+</span></span><span style="display:flex;"><span> find . b | xargs grep hello</span></span></code></pre></div>
+  </div>
+</div><h6 id="bugs">Bugs</h6>
+<ul>
+<li>遇到的第一个问题就是不太会处理字符串，然后也没有用sh.c中的其他函数。</li>
+<li>第二个问题是不会读数据，最后发现构造的测试样例是每个命令以\n结尾。然后就是在读输入时，遇到\n就break，如果读到文件结束就退出，测试层序会多次调用nsh进程。</li>
+<li>第三个问题就是我知道posix管道是半双工的，但是在父进程创建管道之后，写管道子进程没有关闭管道的读管道描述符；读管道子进程也没有关闭写管道描述符，然后造成了程序的undefined behavior，太蠢了。最后在ULK的page768找到解决方案。</li>
+<li>最后一个坑是先写管道，写完之后要及时关闭写管道描述符，我只是在子进程中关闭了写管道描述符，但是在父进程中没有关（管道可以被多个进程读写、需要加锁保证数据可用），导致了后半段命令的子进程一直sleep，不能读到管道EOF，然后退出进程。 这个问题在源代码中反映为user/nsh.c中88-91行，debug之前是先两个wait，然后两个close。太蠢了。</li>
+</ul>
+<h3 id="xv6-book片段">xv6-book片段</h3>
+<ul>
+<li>fork和exec分成两步的原因就是在这两个系统调用中间可以插入一个IO重定向的部分。这样就能在不修改代码的情况下实现多个程序的连接</li>
+<li>fork以及dup系统调用之后，父子进程对于同一个打开的文件描述符共享同一个文件偏移，因此下面的代码会输出hello,world到文件。这也是多个shell命令实现的方式。</li>
+</ul>
+<!-- raw HTML omitted -->
+<ul>
+<li>2&gt;&amp;1：这个命令的意思是对于shell命令，把文件描述符2设置为文件描述符1的复制，即 close（2）; dup(1); 这样做，可以让shell把标准输出和标准错误合并到同一个输出文件中。</li>
+<li>管道pipe中，写管道结束之后，应该关闭管道的写一侧，否则管道的读一侧会一直阻塞。</li>
+</ul>
+<!-- raw HTML omitted -->
+
+      </article>
+    </div>
+  </section>
+</div>
+ 
+
+  <label for="menu-control" class="hidden book-menu-overlay"></label>
+</div>
+
+          
+    </main><footer class="footer">
+  <span>&copy; 2023 <a href="http://shangc1016.github.io/">此时此刻</a></span>
+</footer>
+
+
+  </body>
+</html>
